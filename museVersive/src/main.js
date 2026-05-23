@@ -6,6 +6,9 @@ from './paintings/theScream.js'
 import { animateScream }
 from './animations/animations_scream.js'
 
+import { OrbitControls }
+from 'three/examples/jsm/controls/OrbitControls.js'
+
 const scene = new THREE.Scene()
 
 const camera =
@@ -37,7 +40,23 @@ const screamObjects =
 
 const clock =
     new THREE.Clock()
+const light =
+    new THREE.DirectionalLight(
+        0xffffff,
+        2
+    )
 
+light.position.set(2, 2, 5)
+
+scene.add(light)
+
+const ambient =
+    new THREE.AmbientLight(
+        0xffffff,
+        0.5
+    )
+
+scene.add(ambient)
 function animate() {
 
     requestAnimationFrame(animate)
