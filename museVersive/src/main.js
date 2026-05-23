@@ -1,10 +1,10 @@
 import * as THREE from 'three'
 
 import { createScream }
-from './theScream.js'
+from './paintings/theScream.js'
 
 import { animateScream }
-from './animations_scream.js'
+from './animations/animations_scream.js'
 
 const scene = new THREE.Scene()
 
@@ -25,7 +25,8 @@ renderer.setSize(
     window.innerWidth,
     window.innerHeight
 )
-
+renderer.outputColorSpace =
+    THREE.SRGBColorSpace
 document.body.appendChild(renderer.domElement)
 
 const loader =
@@ -40,13 +41,13 @@ const clock =
 function animate() {
 
     requestAnimationFrame(animate)
-
+    
     const t =
         clock.getElapsedTime()
-
     animateScream(screamObjects, t)
 
     renderer.render(scene, camera)
 }
 
 animate()
+
