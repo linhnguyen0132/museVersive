@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon Musée Virtuel - Three.js</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+        #blocker {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            transition: background-color 0.5s;
+        }
+        #instructions {
+            text-align: center;
+            color: #ffffff;
+            cursor: pointer;
+            background: rgba(20, 20, 20, 0.85);
+            padding: 40px;
+            border-radius: 12px;
+            border: 1px solid #444;
+            box-shadow: 0px 4px 20px rgba(0,0,0,0.5);
+        }
+        h1 {
+            margin-top: 0;
+            font-size: 28px;
+            letter-spacing: 1px;
+        }
+        p {
+            color: #ccc;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="blocker">
+        <div id="instructions">
+            <h1>Entrer dans le Musée</h1>
+            <p><strong>Cliquez ici pour commencer</strong></p>
+            <p>
+                Déplacements : Z, Q, S, D (ou W, A, S, D)<br/>
+                Regarder : Bouger la souris<br/>
+                Quitter : Touche ÉCHAP (ESC)
+            </p>
+        </div>
+    </div>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+
+        let camera, scene, renderer, controls;
+
+        // Variables de mouvement
+        let moveForward = false;
+        let moveBackward = false;
+        let moveLeft = false;
+        let moveRight = false;
+
+        let prevTime = performance.now();
+        const velocity = new THREE.Vector3();
+        const direction = new THREE.Vector3();
+
+        init();
+        animate();
+
+        function init() {
+            // 1. Initialisation de la scène
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0a0a); // Fond sombre à l'extérieur
+
+            // 2. Caméra (hauteur de 1.7 unité = hauteur des yeux humaine)
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 1.7, 5);
+
+            // 3. Lumière d'ambiance globale (très faible pour laisser agir les lampes du plafond)
+            const ambientLight = new THREE.HemisphereLight(0xffffff, 0x222222, 0.15); 
+            scene.add(ambientLight);
+
+            // 4. Contrôles PointerLock (Style FPS)
+            controls = new PointerLockControls(camera, document.body);
+
+            const blocker = document.getElementById('blocker');
+            const instructions = document.getElementById('instructions');
+
+            instructions.addEventListener('click', () => controls.lock());
+            controls.addEventListener('lock', () => {
+                instructions.style.display = 'none';
+                blocker.style.display = 'none';
+            });
+            controls.addEventListener('unlock', () => {
+                blocker.style.display = 'flex';
+                instructions.style.display = 'block';
+            });
+
+            scene.add(controls.getObject());
+
+            // 5. Événements Clavier (Prise en compte AZERTY / QWERTY)
+            const onKeyDown = (event) => {
+                switch (event.code) {
+                    case 'ArrowUp': case 'KeyW': case 'KeyZ': moveForward = true; break;
+                    case 'ArrowLeft': case 'KeyA': case 'KeyQ': moveLeft = true; break;
+                    case 'ArrowDown': case 'KeyS': moveBackward = true; break;
+                    case 'ArrowRight': case 'KeyD': moveRight = true; break;
+                }
+            };
+
+            const onKeyUp = (event) => {
+                switch (event.code) {
+                    case 'ArrowUp': case 'KeyW': case 'KeyZ': moveForward = false; break;
+                    case 'ArrowLeft': case 'KeyA': case 'KeyQ': moveLeft = false; break;
+                    case 'ArrowDown': case 'KeyS': moveBackward = false; break;
+                    case 'ArrowRight': case 'KeyD': moveRight = false; break;
+                }
+            };
+
+            document.addEventListener('keydown', onKeyDown);
+            document.addEventListener('keyup', onKeyUp);
+
+            // 6. Construction du musée
+            createMuseum();
+
+            // 7. Moteur de rendu WebGL
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            // Activation des ombres (optionnel mais recommandé pour le réalisme)
+            renderer.shadowMap.enabled = true;
+            document.body.appendChild(renderer.domElement);
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        // Fonction maîtresse pour peupler le musée
+        function createMuseum() {
+            // --- A. LA STRUCTURE ---
+            const roomGeometry = new THREE.BoxGeometry(20, 8, 20);
+
+            // Ajout du paramètre 'side: THREE.BackSide' pour voir les murs de l'intérieur
+            const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.4, side: THREE.BackSide });
+            const wallMaterial = new THREE.MeshStandardMaterial({ color: 0xf0f0f0, roughness: 0.9, side: THREE.BackSide });
+            const ceilingMaterial = new THREE.MeshStandardMaterial({ color: 0xcccccc, side: THREE.BackSide });
+
+            const materials = [
+                wallMaterial,    // Mur Droit
+                wallMaterial,    // Mur Gauche
+                ceilingMaterial, // Plafond
+                floorMaterial,   // Sol
+                wallMaterial,    // Mur Avant
+                wallMaterial     // Mur Arrière
+            ];
+
+            const room = new THREE.Mesh(roomGeometry, materials);
+            room.position.y = 4; // On le remonte pour que le sol soit au niveau y = 0
+            scene.add(room);
+
+            // --- B. LES LAMPES AU PLAFOND ---
+            // On en place 4 de manière équilibrée
+            createCeilingLamp(-5, -5);
+            createCeilingLamp(5, -5);
+            createCeilingLamp(-5, 5);
+            createCeilingLamp(5, 5);
+
+            // --- C. LES TABLEAUX D'EXPOSITION ---
+            // Mur du fond (Z = -9.9, rotation = 0)
+            createPainting(-5, 3.5, -9.9, 0, 3, 4); 
+            createPainting(0, 3.5, -9.9, 0, 4, 2.5);
+            createPainting(5, 3.5, -9.9, 0, 3, 4);
+
+            // Mur de gauche (X = -9.9, rotation = 90 degrés)
+            createPainting(-9.9, 3.5, -4, Math.PI / 2, 3, 3);
+            createPainting(-9.9, 3.5, 4, Math.PI / 2, 5, 3);
+
+            // Mur de droite (X = 9.9, rotation = -90 degrés)
+            createPainting(9.9, 3.5, -4, -Math.PI / 2, 4, 3);
+            createPainting(9.9, 3.5, 4, -Math.PI / 2, 3, 4);
+        }
+
+        // Générateur de Lampes
+        function createCeilingLamp(x, z) {
+            // Boîtier cylindrique de la lampe
+            const lampGeometry = new THREE.CylinderGeometry(0.4, 0.4, 0.2, 16);
+            const lampMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xffffff,
+                emissive: 0xfff6e0,
+                emissiveIntensity: 1.5 
+            });
+            const lampMesh = new THREE.Mesh(lampGeometry, lampMaterial);
+            lampMesh.position.set(x, 7.9, z); // Juste sous le plafond (y=8)
+            scene.add(lampMesh);
+
+            // Source lumineuse physique directionnelle (PointLight)
+            // (Couleur, Intensité, Distance max de portée, Atténuation)
+            const light = new THREE.PointLight(0xfff6e0, 25, 18, 1.5);
+            light.position.set(x, 7.5, z);
+            scene.add(light);
+        }
+
+        // Générateur de Tableaux (Cadre + Toile colorée)
+        function createPainting(x, y, z, rotationY, width, height) {
+            const paintingGroup = new THREE.Group();
+
+            // 1. Le Cadre extérieur
+            const thickness = 0.15;
+            const frameGeo = new THREE.BoxGeometry(width + thickness, height + thickness, 0.1);
+            const frameMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8 });
+            const frame = new THREE.Mesh(frameGeo, frameMat);
+            paintingGroup.add(frame);
+
+            // 2. La Toile (couleur aléatoire pour faire de l'art abstrait)
+            const canvasGeo = new THREE.BoxGeometry(width, height, 0.12);
+            const randomColor = new THREE.Color().setHSL(Math.random(), 0.65, 0.45);
+            const canvasMat = new THREE.MeshStandardMaterial({ color: randomColor, roughness: 0.6 });
+            const canvas = new THREE.Mesh(canvasGeo, canvasMat);
+            paintingGroup.add(canvas);
+
+            // Positionnement complet du groupe
+            paintingGroup.position.set(x, y, z);
+            paintingGroup.rotation.y = rotationY;
+
+            scene.add(paintingGroup);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // Boucle d'animation (Mouvements fluides et rafraîchissement)
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const time = performance.now();
+
+            if (controls.isLocked === true) {
+                const delta = (time - prevTime) / 1000;
+
+                // Friction naturelle pour éviter les glissements infinis
+                velocity.x -= velocity.x * 10.0 * delta;
+                velocity.z -= velocity.z * 10.0 * delta;
+
+                direction.z = Number(moveForward) - Number(moveBackward);
+                direction.x = Number(moveRight) - Number(moveLeft);
+                direction.normalize(); // Vitesse identique en diagonale
+
+                // Vitesse de marche
+                const speed = 40.0;
+                if (moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
+                if (moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
+
+                controls.moveRight(-velocity.x * delta);
+                controls.moveForward(-velocity.z * delta);
+
+                // --- GESTION DES COLLISIONS (Limites des murs) ---
+                // La pièce fait 20x20m centrée en (0,0). Les murs sont à -10 et 10.
+                // On garde une marge de sécurité de 0.8m pour ne pas coller son nez contre les tableaux.
+                const padding = 9.2;
+                if (camera.position.x < -padding) camera.position.x = -padding;
+                if (camera.position.x > padding) camera.position.x = padding;
+                if (camera.position.z < -padding) camera.position.z = -padding;
+                if (camera.position.z > padding) camera.position.z = padding;
+            }
+
+            prevTime = time;
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
