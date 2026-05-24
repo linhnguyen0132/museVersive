@@ -170,8 +170,10 @@ function setupMobileTouch() {
         `;
 
         // Demande la permission gyroscope iOS depuis ce geste user
-        document.getElementById('enter-btn').addEventListener('click', async () => {
-            await requestGyroPermission();   // Dialogue iOS si nécessaire, no-op sur Android
+        document.getElementById('enter-btn').addEventListener('click', () => {
+            requestGyroPermission();   // Dialogue iOS si nécessaire, no-op sur Android
+            // ⚠️  PAS de await ici : iOS révoque le "user activation" au premier await
+            //     requestGyroPermission() lance la Promise et on n'attend pas son résultat
             document.getElementById('blocker').style.display = 'none';
         });
     }
