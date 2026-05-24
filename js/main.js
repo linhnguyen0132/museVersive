@@ -175,9 +175,14 @@ function setupMobileTouch() {
 
         // Demande la permission gyroscope iOS depuis ce geste user
         document.getElementById('enter-btn').addEventListener('click', () => {
-            requestGyroPermission();   // Dialogue iOS si nécessaire, no-op sur Android
-            // ⚠️  PAS de await ici : iOS révoque le "user activation" au premier await
-            //     requestGyroPermission() lance la Promise et on n'attend pas son résultat
+            // ⚠️  PAS de await — iOS révoque le "user activation" au premier await.
+            //     On utilise .then() pour rester synchrone dans le handler de clic.
+            requestGyroPermission().then(granted => {
+                if (!granted) {
+                    console.warn('[Main] Gyroscope : permission refusée par l\'utilisateur iOS.');
+                }
+                // Note : _granted est déjà mis à jour dans gyroscope.js
+            });
             document.getElementById('blocker').style.display = 'none';
         });
     }
