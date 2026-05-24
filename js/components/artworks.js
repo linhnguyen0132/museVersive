@@ -63,6 +63,13 @@ export function createPainting(scene, imagePath, title, x, y, z, rotationY, widt
     paintingGroup.add(plaque);
 
     paintingGroup.position.set(x, y, z);
+    
+    paintingGroup.userData.lookAtTarget =
+    new THREE.Vector3(
+        x,
+        y + 0.5,
+        z
+    );
     paintingGroup.rotation.y = rotationY;
 
     paintingGroup.name = title;
