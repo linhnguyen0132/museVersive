@@ -9,9 +9,9 @@ import * as THREE from 'three';
 
 const PANORAMAS = {
     'Starry Night': 'assets/panoramas/starry_night_pano.jpg',
-    'Le Cri':       'assets/panoramas/the_scream_pano.jpg',
-    'Hiver':        'assets/panoramas/winter_scene_pano.jpg',
-    'Ville':        'assets/panoramas/thorn_town_hall_pano.jpg',
+    'The Scream':       'assets/panoramas/the_scream_pano.jpg',
+    'March in the Birch Woods':        'assets/panoramas/winter_scene_pano.jpg',
+    'City Hall at Thorn':        'assets/panoramas/thorn_town_hall_pano.jpg',
 };
 
 const textureLoader = new THREE.TextureLoader();
