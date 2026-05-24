@@ -221,7 +221,7 @@ export function createMuseum(scene, mixers, movingNPCs) {
 
     // 1. Le Piano à queue
     // Paramètres : scene, path, x, z, scale, rotationY, y (hauteur)
-    loadStaticDecoration(scene, 'models/grand_piano.glb', -4, -8.5, 0.5, Math.PI / 4, 0);
+    loadStaticDecoration(scene, 'models/grand_piano.glb', -4, -8.0, 0.5, Math.PI / 4, 0);
 
     // 2. La Statue sur son socle
     const pedestalGeo = new THREE.CylinderGeometry(0.6, 0.6, 1.2, 32);
