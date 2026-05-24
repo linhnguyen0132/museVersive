@@ -154,8 +154,12 @@ function setupMobileTouch() {
                     <span class="control-label">Avancer / Reculer</span>
                 </div>
                 <div class="control-row">
-                    <div class="key-group"><span class="key wide">☝️ Glisser</span></div>
+                    <div class="key-group"><span class="key wide">✋ Glisser</span></div>
                     <span class="control-label">Regarder autour</span>
+                </div>
+                <div class="control-row">
+                    <div class="key-group"><span class="key wide">👁 Toucher</span></div>
+                    <span class="control-label">Regarder un tableau</span>
                 </div>
                 <div class="control-row">
                     <div class="key-group"><span class="key key-gold wide">🖼️ Toucher</span></div>
