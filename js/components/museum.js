@@ -135,6 +135,89 @@ function createSnow(scene, x, y, z) {
 
     scene.add(snowGroup);
 }
+function createClouds(scene, x, y, z) {
+
+    const cloudGroup = new THREE.Group();
+
+    for (let i = 0; i < 25; i++) {
+
+        const cloud =
+            new THREE.Group();
+
+        const puffCount =
+            Math.floor(
+                Math.random() * 4
+            ) + 3;
+
+        for (let j = 0; j < puffCount; j++) {
+
+            const puffGeo =
+                new THREE.CircleGeometry(
+                    Math.random() * 0.15 + 0.08,
+                    10
+                );
+
+            const puffMat =
+                new THREE.MeshBasicMaterial({
+                    color: 0xffffff,
+                    transparent: true,
+                    opacity: 0.35,
+                    depthWrite: false,
+                    side: THREE.DoubleSide
+                });
+
+            const puff =
+                new THREE.Mesh(
+                    puffGeo,
+                    puffMat
+                );
+
+            // position aléatoire
+            puff.position.set(
+                (Math.random() - 0.5) * 0.5,
+                (Math.random() - 0.5) * 0.2,
+                0
+            );
+
+            // étirement différent
+            puff.scale.set(
+                Math.random() * 1.2 + 0.6,
+                Math.random() * 0.5 + 0.5,
+                1
+            );
+
+            // rotation aléatoire
+            puff.rotation.z =
+                Math.random() * Math.PI;
+                        cloud.add(puff);
+                    }
+
+        // position du nuage
+        cloud.position.set(
+            (Math.random() - 0.5) * 5,
+            Math.random() * 2,
+            (Math.random() - 0.5) * 0.5
+        );
+
+        // vitesse individuelle
+        cloud.userData.speed =
+            Math.random() * 0.002 + 0.001;
+
+        cloud.userData.baseY =
+            cloud.position.y;
+
+        cloudGroup.add(cloud);
+    }
+
+    cloudGroup.position.set(x, y, z);
+
+    cloudGroup.userData.isCityClouds = true;
+
+    scene.add(cloudGroup);
+
+    return cloudGroup;
+}
+
 export function createMuseum(scene, mixers, movingNPCs) {
     const roomGeometry = new THREE.BoxGeometry(20, 8, 20); 
     const textureLoader = new THREE.TextureLoader();
@@ -176,7 +259,7 @@ export function createMuseum(scene, mixers, movingNPCs) {
     createCeilingLamp(scene, 0, 0);
 
     createSnow(scene, -8, 3, 3);
-
+    createClouds(scene, 0,4.5,10)
     // CRÉATION DES TABLEAUX ET ENREGISTREMENT DANS LA LISTE
     const paintings = []; 
     paintings.push(createPainting(scene, 'assets/textures/starry_night.jpg', 'Starry Night', 0, 4.5, -9.9, 0, 4, 3)); 

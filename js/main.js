@@ -61,7 +61,7 @@ function init() {
 
     // Cache des objets animés — traverse unique, jamais répété en boucle
     scene.traverse((obj) => {
-        if (obj.userData.isScreamFigure || obj.userData.isScreamSky || obj.userData.isStarryTree || obj.userData.isSnowGroup    ) {
+        if (obj.userData.isScreamFigure || obj.userData.isScreamSky || obj.userData.isStarryTree || obj.userData.isSnowGroup || obj.userData.isCityClouds)  {
             animatedObjects.push(obj);
         }
     });
@@ -350,6 +350,30 @@ function animate() {
                 // reset
                 if (flake.position.y < -2) {
                     flake.position.y = 2;
+                }
+            });
+        }
+
+        if (obj.userData.isCityClouds) {
+
+            obj.children.forEach((cloud) => {
+
+                // drift horizontal lent
+                cloud.position.x +=
+                    cloud.userData.speed;
+
+                // flottement vertical
+                cloud.position.y =
+                    cloud.userData.baseY +
+                    Math.sin(
+                        t +
+                        cloud.position.x
+                    ) * 0.03;
+
+                // reset
+                if (cloud.position.x > 3) {
+
+                    cloud.position.x = -3;
                 }
             });
         }
