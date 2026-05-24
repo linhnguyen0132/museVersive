@@ -221,7 +221,7 @@ function _buildMenu(paintingName) {
             </button>
 
             <button class="menu-enter-btn" style="${BTN_ENTER}">
-                <span style="font-size:22px;">▶</span>
+                <span style="font-size:22px;">→</span>
                 <span style="color:#d4af37;font-weight:bold;">Entrer</span>
                 ${hint2}
             </button>
@@ -329,19 +329,29 @@ function _shortAngle(from, to) {
 }
 
 function lookAtPainting(camera, painting, onDone) {
-    const dir = new THREE.Vector3()
-        .subVectors(painting.position, camera.position)
-        .normalize();
+    // getWorldPosition() force la mise à jour de matrixWorld avant lecture.
+    // Sans ça, Box3.setFromObject() peut utiliser des matrices périmées et placer
+    // les meshes enfants (canvas, cadre, plaque) à l'origine → bbox center y ≈ -0.2
+    // → regard vers le sol.
+    //
+    // Le canvas est à local y = 0 dans le groupe → getWorldPosition donne
+    // directement le centre exact de la toile (ex. y = 4.5 pour tous les tableaux).
+    const target = new THREE.Vector3();
+    painting.getWorldPosition(target);
 
-    const targetYaw = _shortAngle(
-        camera.rotation.y,
-        Math.atan2(-dir.x, -dir.z)   // axe -Z = forward en THREE YXZ
-    );
-    const hDist = Math.sqrt(dir.x * dir.x + dir.z * dir.z);
-    const targetPitch = Math.max(
-        -Math.PI / 2.2,
-        Math.min(Math.PI / 2.2, -Math.atan2(dir.y, hDist))
-    );
+    const dx = target.x - camera.position.x;
+    const dy = target.y - camera.position.y;   // toujours > 0 : tableaux au-dessus des yeux
+    const dz = target.z - camera.position.z;
+    const hDist = Math.sqrt(dx * dx + dz * dz) || 0.001;
+
+    // Yaw : direction horizontale vers le mur du tableau (chemin le plus court)
+    const targetYaw = _shortAngle(camera.rotation.y, Math.atan2(-dx, -dz));
+
+    // Pitch : regard vers le haut (dy > 0 → rawPitch < 0 → look up).
+    // Math.min(0, ...) garantit qu'on ne regardera jamais vers le bas,
+    // même si dy venait à être négatif pour une raison imprévue.
+    const rawPitch    = -Math.atan2(dy, hDist);
+    const targetPitch = Math.max(-Math.PI / 2.2, Math.min(0, rawPitch));
 
     gsap.to(camera.rotation, {
         y: targetYaw,

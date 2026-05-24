@@ -2,11 +2,26 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>MuseVersive</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
+
+    <!-- PWA & SEO ─────────────────────────────────────────────────── -->
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#0a0a0a">
+    <meta name="description" content="Explorez un musée virtuel en 3D et entrez dans les grandes œuvres d'art.">
+
+    <!-- iOS home screen (Safari) ──────────────────────────────────── -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MuseVersive">
+    <link rel="apple-touch-icon" href="/assets/icons/192.png">
+
+    <!-- Android Chrome ─────────────────────────────────────────────── -->
+    <meta name="mobile-web-app-capable" content="yes">
+
+    <!-- Fonts ──────────────────────────────────────────────────────── -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.10.1/nipplejs.min.js"></script>
@@ -45,7 +60,7 @@
                 </div>
                 <div class="control-row">
                     <div class="key-group">
-                        <span class="key wide">🖱 Souris</span>
+                        <span class="key wide">🖱️ Souris</span>
                     </div>
                     <span class="control-label">Regarder autour</span>
                 </div>
@@ -101,13 +116,60 @@
     <script type="module" src="js/main.js"></script>
     
     <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js')
-                .then(reg => console.log('Mode hors-ligne (PWA) activé !'))
-                .catch(err => console.warn('Erreur PWA:', err));
-            });
-        }
+    // ── Service Worker (PWA hors-ligne) ─────────────────────────────────────
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', async () => {
+            try {
+                const reg = await navigator.serviceWorker.register('/sw.js');
+                console.info('[PWA] Service Worker enregistré :', reg.scope);
+
+                // Détecte une nouvelle version du SW et recharge silencieusement
+                // (sans déranger l'utilisateur en cours de session)
+                reg.addEventListener('updatefound', () => {
+                    const newWorker = reg.installing;
+                    if (!newWorker) return;
+                    newWorker.addEventListener('statechange', () => {
+                        // Le SW est actif et a pris le contrôle → rechargement propre
+                        if (newWorker.state === 'activated' && navigator.serviceWorker.controller) {
+                            console.info('[PWA] Nouvelle version installée — rechargement…');
+                            window.location.reload();
+                        }
+                    });
+                });
+            } catch (err) {
+                console.warn('[PWA] Enregistrement SW échoué :', err);
+            }
+        });
+    }
+
+    // ── Détection offline / online ──────────────────────────────────────────
+    function _showOfflineBanner() {
+        if (document.getElementById('_offline-banner')) return;
+        const b = document.createElement('div');
+        b.id = '_offline-banner';
+        b.style.cssText = [
+            'position:fixed;top:0;left:0;right:0;z-index:9999',
+            'padding:9px 16px;text-align:center',
+            'background:rgba(212,175,55,0.92);color:#0a0a0a',
+            'font-family:"Inter",sans-serif;font-size:13px;font-weight:500',
+            'backdrop-filter:blur(4px)',
+            'transition:opacity 0.4s',
+        ].join(';');
+        b.textContent = '📶  Mode hors-ligne — l\'expérience continue grâce au cache local';
+        document.body.appendChild(b);
+        // Disparaît automatiquement après 5 s
+        setTimeout(() => { b.style.opacity = '0'; setTimeout(() => b.remove(), 400); }, 5000);
+    }
+
+    function _hideOfflineBanner() {
+        const b = document.getElementById('_offline-banner');
+        if (b) { b.style.opacity = '0'; setTimeout(() => b.remove(), 400); }
+    }
+
+    window.addEventListener('offline', _showOfflineBanner);
+    window.addEventListener('online',  _hideOfflineBanner);
+    // Affiche la bannière immédiatement si déjà hors-ligne au chargement
+    if (!navigator.onLine) _showOfflineBanner();
     </script>
 
     <div id="joystick-zone" style="position: absolute; bottom: 20px; left: 20px; width: 150px; height: 150px; display: none; z-index: 20;"></div>
