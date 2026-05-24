@@ -1,269 +1,298 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 import { createMuseum } from './components/museum.js';
-import { setupInteractions, updateInteractions } from './components/interaction.js';
+import { setupInteractions, updateInteractions, isInTransition } from './components/interaction.js';
 import { updateWorldAnimations } from './components/worlds.js';
 
-// --- VARIABLES GLOBALES ---
+// ─── Variables globales ───────────────────────────────────────────────────────
 let camera, scene, renderer, controls;
 let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+let joystickX = 0, joystickY = 0;   // Valeurs analogiques du joystick (-1 → +1)
 let prevTime = performance.now();
+
 // Détection stricte (Téléphone/Tablette vs PC)
-const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (window.innerWidth <= 1024 && navigator.maxTouchPoints > 0);
-const velocity = new THREE.Vector3();
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    || (window.innerWidth <= 1024 && navigator.maxTouchPoints > 0);
+
+const velocity  = new THREE.Vector3();
 const direction = new THREE.Vector3();
-const mixers = [];
-const movingNPCs = []; 
+const mixers    = [];
+const movingNPCs = [];
+const raycaster  = new THREE.Raycaster();
+let   paintings  = [];
 
-const raycaster = new THREE.Raycaster();
-let paintings = []; 
-
-// Variables pour le mobile
+// Variables regard tactile
 let isMobileTouch = false;
-let touchStartX = 0;
-let touchStartY = 0;
-const lookSpeed = 0.005; // Sensibilité pour tourner la tête au doigt
+let touchStartX = 0, touchStartY = 0;
+let lookTouchId = null;         // identifiant du doigt qui contrôle la caméra
+const LOOK_SPEED = 0.005;
 
+// ─── Démarrage ────────────────────────────────────────────────────────────────
 init();
 animate();
 
+// ─── init ─────────────────────────────────────────────────────────────────────
 function init() {
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0a0a0a);
 
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(0, 1.7, 5);
+    camera.rotation.order = 'YXZ';   // Défini UNE SEULE FOIS ici
 
-    const ambientLight = new THREE.HemisphereLight(0xffffff, 0x222222, 0.15); 
-    scene.add(ambientLight);
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x222222, 0.15));
 
-    // On crée l'objet controls pour tout le monde (gère la physique XZ)
+    // PointerLockControls — instancié UNE SEULE FOIS
     controls = new PointerLockControls(camera, document.body);
     scene.add(controls.getObject());
 
-    // L'AIGUILLAGE AUTOMATIQUE
     if (isMobile) {
         setupMobileTouch();
     } else {
-        setupControls(); // Seulement si on est sur PC
+        setupControls();
     }
 
-    // INITIALISATION UNIQUE
     paintings = createMuseum(scene, mixers, movingNPCs);
     setupInteractions(scene, camera, raycaster, paintings);
 
     renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Capé à 2× pour les performances
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.shadowMap.enabled = true;
     document.body.appendChild(renderer.domElement);
 
     window.addEventListener('resize', onWindowResize);
 
-    // CRÉATION DU VISEUR CENTRAL (Pour savoir où on regarde)
+    // Viseur central
     const crosshair = document.createElement('div');
     crosshair.style.cssText = `
-        position: absolute; 
-        top: 50%; 
-        left: 50%; 
-        width: 6px; 
-        height: 6px; 
-        background: rgba(255, 255, 255, 0.8); 
-        border-radius: 50%; 
-        transform: translate(-50%, -50%); 
-        z-index: 100; 
-        pointer-events: none;
+        position: absolute; top: 50%; left: 50%;
+        width: 6px; height: 6px;
+        background: rgba(255,255,255,0.8);
+        border-radius: 50%;
+        transform: translate(-50%,-50%);
+        z-index: 100; pointer-events: none;
     `;
     document.body.appendChild(crosshair);
 }
 
+// ─── Contrôles PC (clavier + pointer lock) ────────────────────────────────────
 function setupControls() {
-    // controls est déjà instancié dans init() — on ajoute seulement les listeners
-    const blocker = document.getElementById('blocker');
+    const blocker      = document.getElementById('blocker');
     const instructions = document.getElementById('instructions');
 
-    // Sur PC, cliquer sur l'écran verrouille la souris
     instructions.addEventListener('click', () => controls.lock());
 
     controls.addEventListener('lock', () => {
         instructions.style.display = 'none';
         blocker.style.display = 'none';
     });
-
     controls.addEventListener('unlock', () => {
         blocker.style.display = 'flex';
         instructions.style.display = 'block';
     });
 
-    const onKeyDown = (event) => {
-        switch (event.code) {
-            case 'ArrowUp': case 'KeyW': case 'KeyZ': moveForward = true; break;
-            case 'ArrowLeft': case 'KeyA': case 'KeyQ': moveLeft = true; break;
-            case 'ArrowDown': case 'KeyS': moveBackward = true; break;
-            case 'ArrowRight': case 'KeyD': moveRight = true; break;
+    const onKeyDown = (e) => {
+        switch (e.code) {
+            case 'ArrowUp':    case 'KeyW': case 'KeyZ': moveForward  = true; break;
+            case 'ArrowLeft':  case 'KeyA': case 'KeyQ': moveLeft     = true; break;
+            case 'ArrowDown':  case 'KeyS':              moveBackward = true; break;
+            case 'ArrowRight': case 'KeyD':              moveRight    = true; break;
         }
     };
-    const onKeyUp = (event) => {
-        switch (event.code) {
-            case 'ArrowUp': case 'KeyW': case 'KeyZ': moveForward = false; break;
-            case 'ArrowLeft': case 'KeyA': case 'KeyQ': moveLeft = false; break;
-            case 'ArrowDown': case 'KeyS': moveBackward = false; break;
-            case 'ArrowRight': case 'KeyD': moveRight = false; break;
+    const onKeyUp = (e) => {
+        switch (e.code) {
+            case 'ArrowUp':    case 'KeyW': case 'KeyZ': moveForward  = false; break;
+            case 'ArrowLeft':  case 'KeyA': case 'KeyQ': moveLeft     = false; break;
+            case 'ArrowDown':  case 'KeyS':              moveBackward = false; break;
+            case 'ArrowRight': case 'KeyD':              moveRight    = false; break;
         }
     };
     document.addEventListener('keydown', onKeyDown);
-    document.addEventListener('keyup', onKeyUp);
+    document.addEventListener('keyup',   onKeyUp);
 }
 
+// ─── Contrôles Mobile (joystick analogique + regard multi-touch) ──────────────
 function setupMobileTouch() {
-    isMobileTouch = (('ontouchstart' in window) || (navigator.maxTouchPoints > 0));
+    isMobileTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    if (!isMobileTouch) return;
 
-    if (isMobileTouch) {
-        // 1. Affiche la zone du joystick
-        const joystickZone = document.getElementById('joystick-zone');
-        if(joystickZone) joystickZone.style.display = 'block';
-        
-        // 2. Remplace les instructions PC par des instructions mobiles
-        const instructions = document.getElementById('instructions');
-        if(instructions) {
-            instructions.innerHTML = `
-                <div class="museum-logo">
-                    <span class="logo-deco">✦</span>
-                    <span class="logo-title">MuseVersive</span>
-                    <span class="logo-deco">✦</span>
+    // 1. Affiche la zone du joystick
+    const joystickZone = document.getElementById('joystick-zone');
+    if (joystickZone) joystickZone.style.display = 'block';
+
+    // 2. Remplace l'écran d'accueil PC par la version mobile (style gold préservé)
+    const instructions = document.getElementById('instructions');
+    if (instructions) {
+        instructions.innerHTML = `
+            <div class="museum-logo">
+                <span class="logo-deco">✦</span>
+                <span class="logo-title">MuseVersive</span>
+                <span class="logo-deco">✦</span>
+            </div>
+            <p class="museum-subtitle">Une expérience artistique immersive</p>
+            <div class="separator">
+                <span class="sep-line"></span>
+                <span class="sep-icon">🎨</span>
+                <span class="sep-line"></span>
+            </div>
+            <div class="controls-grid" style="margin-bottom:18px;">
+                <div class="control-row">
+                    <div class="key-group"><span class="key wide">🕹️ Joystick</span></div>
+                    <span class="control-label">Avancer / Reculer</span>
                 </div>
-                <p class="museum-subtitle">Touchez l'écran pour commencer</p>
-                <div class="separator"><span class="sep-line"></span></div>
-                <p class="enter-hint">Utilisez le joystick (gauche) pour marcher.<br/>Glissez sur l'écran (droite) pour regarder.</p>
-                <button id="enter-btn-mobile" style="margin-top:20px; padding:15px; border-radius:8px; border:none; background:white; color:black; font-weight:bold; font-size:16px;">
-                    ▶ Entrer
-                </button>
-            `;
-            
-            // Masquer l'écran d'accueil au clic
-            document.getElementById('enter-btn-mobile').addEventListener('click', () => {
-                document.getElementById('blocker').style.display = 'none';
-            });
-        }
+                <div class="control-row">
+                    <div class="key-group"><span class="key wide">☝️ Glisser</span></div>
+                    <span class="control-label">Regarder autour</span>
+                </div>
+                <div class="control-row">
+                    <div class="key-group"><span class="key key-gold wide">🖼️ Toucher</span></div>
+                    <span class="control-label">Entrer dans la toile</span>
+                </div>
+            </div>
+            <div class="separator"><span class="sep-line"></span></div>
+            <button id="enter-btn">
+                <span class="btn-icon">▶</span>
+                Entrer dans le musée
+            </button>
+        `;
 
-        // 3. Initialisation du Joystick (Nipple.js) pour avancer/reculer
-        if (typeof nipplejs !== 'undefined') {
-            const joystick = nipplejs.create({
-                zone: document.getElementById('joystick-zone'),
-                mode: 'static',
-                position: { left: '80px', bottom: '80px' }, // Un peu plus haut pour le pouce
-                color: 'white'
-            });
-
-            joystick.on('move', (evt, data) => {
-                const angle = data.angle.degree;
-                moveForward = moveBackward = moveLeft = moveRight = false;
-
-                if (angle > 45 && angle < 135) moveForward = true;
-                else if (angle >= 135 && angle <= 225) moveLeft = true;
-                else if (angle > 225 && angle < 315) moveBackward = true;
-                else moveRight = true;
-            });
-
-            joystick.on('end', () => {
-                moveForward = moveBackward = moveLeft = moveRight = false;
-            });
-        } else {
-            console.warn("Nipple.js n'est pas chargé dans le HTML.");
-        }
-
-        // 4. Gestion de la Caméra Tactile (Regarder autour de soi)
-        document.addEventListener('touchstart', (e) => {
-            if (e.target.closest('#joystick-zone') || e.target.closest('#blocker') ||
-                e.target.closest('#interact-menu') || e.target.closest('#exit-hint')) return;
-            touchStartX = e.touches[0].pageX;
-            touchStartY = e.touches[0].pageY;
-        }, { passive: false });
-
-        document.addEventListener('touchmove', (e) => {
-            if (e.target.closest('#joystick-zone') || e.target.closest('#blocker') ||
-                e.target.closest('#interact-menu') || e.target.closest('#exit-hint')) return;
-            e.preventDefault(); // Empêche le scrolling de la page
-            
-            const touchX = e.touches[0].pageX;
-            const touchY = e.touches[0].pageY;
-            
-            const deltaX = touchX - touchStartX;
-            const deltaY = touchY - touchStartY;
-            
-            camera.rotation.order = 'YXZ'; 
-            camera.rotation.y -= deltaX * lookSpeed;
-            camera.rotation.x -= deltaY * lookSpeed;
-            // Limite pour ne pas faire un salto avec la tête
-            camera.rotation.x = Math.max(-Math.PI / 2.5, Math.min(Math.PI / 2.5, camera.rotation.x));
-
-            touchStartX = touchX;
-            touchStartY = touchY;
-        }, { passive: false });
+        document.getElementById('enter-btn').addEventListener('click', () => {
+            document.getElementById('blocker').style.display = 'none';
+        });
     }
+
+    // 3. Joystick nipplejs — ANALOGIQUE (data.vector donne -1 → +1 en continu)
+    if (typeof nipplejs !== 'undefined') {
+        const joystick = nipplejs.create({
+            zone:     joystickZone,
+            mode:     'static',
+            position: { left: '75px', bottom: '75px' },  // centre de la zone 150×150
+            color:    'rgba(255,255,255,0.9)',
+            size:     100,
+        });
+
+        joystick.on('move', (_evt, data) => {
+            joystickX =  data.vector.x;   // -1 (gauche) → +1 (droite)
+            joystickY =  data.vector.y;   // -1 (reculer) → +1 (avancer)
+        });
+        joystick.on('end', () => { joystickX = 0; joystickY = 0; });
+
+    } else {
+        console.warn("Nipple.js n'est pas chargé dans le HTML.");
+    }
+
+    // 4. Regard tactile — suivi par identifiant pour éviter les conflits multi-touch
+    document.addEventListener('touchstart', (e) => {
+        // Ignorer les zones UI
+        if (e.target.closest('#joystick-zone') || e.target.closest('#blocker') ||
+            e.target.closest('#interact-menu')  || e.target.closest('#exit-hint')) return;
+
+        // Enregistre le PREMIER doigt libre pour le regard
+        for (const touch of e.changedTouches) {
+            if (lookTouchId === null) {
+                lookTouchId = touch.identifier;
+                touchStartX = touch.pageX;
+                touchStartY = touch.pageY;
+                break;
+            }
+        }
+    }, { passive: true });
+
+    document.addEventListener('touchmove', (e) => {
+        if (e.target.closest('#joystick-zone') || e.target.closest('#blocker') ||
+            e.target.closest('#interact-menu')  || e.target.closest('#exit-hint')) return;
+        e.preventDefault();   // Empêche le scroll iOS
+
+        // Cherche NOTRE doigt par identifiant (pas forcément touches[0])
+        let lookTouch = null;
+        for (const touch of e.touches) {
+            if (touch.identifier === lookTouchId) { lookTouch = touch; break; }
+        }
+        if (!lookTouch) return;
+
+        const dx = lookTouch.pageX - touchStartX;
+        const dy = lookTouch.pageY - touchStartY;
+
+        camera.rotation.y -= dx * LOOK_SPEED;
+        camera.rotation.x -= dy * LOOK_SPEED;
+        camera.rotation.x = Math.max(-Math.PI / 2.5, Math.min(Math.PI / 2.5, camera.rotation.x));
+
+        touchStartX = lookTouch.pageX;
+        touchStartY = lookTouch.pageY;
+    }, { passive: false });
+
+    // Libère l'identifiant quand le doigt se lève
+    document.addEventListener('touchend', (e) => {
+        for (const touch of e.changedTouches) {
+            if (touch.identifier === lookTouchId) { lookTouchId = null; break; }
+        }
+    }, { passive: true });
 }
 
-// Fonction utilitaire (Safe) pour les vibrations haptiques
+// ─── Haptique ─────────────────────────────────────────────────────────────────
 export function triggerHaptic(pattern) {
-    if (typeof window !== 'undefined' && 'vibrate' in navigator) {
-        try {
-            navigator.vibrate(pattern);
-        } catch (e) {}
+    if ('vibrate' in navigator) {
+        try { navigator.vibrate(pattern); } catch (_) {}
     }
 }
 
+// ─── Resize ───────────────────────────────────────────────────────────────────
 function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
+// ─── Boucle de rendu ──────────────────────────────────────────────────────────
 function animate() {
     requestAnimationFrame(animate);
-    const time = performance.now();
-    const delta = (time - prevTime) / 1000;
+    const time  = performance.now();
+    const delta = Math.min((time - prevTime) / 1000, 0.05); // Cap à 50ms pour éviter les sauts
 
-    // Si la souris est verrouillée (PC) OU si on est sur mobile
-    // Mouvement autorisé SI (PC & Souris verrouillée) OU SI (Mobile)
-    if ((!isMobile && controls.isLocked === true) || isMobile) {
-        
-        // Physique des déplacements (Friction)
+    const canMove = (!isMobile && controls.isLocked) || isMobile;
+
+    // Physique — BLOQUÉE pendant les transitions GSAP (entrée/sortie toile)
+    if (canMove && !isInTransition()) {
+
+        // Friction
         velocity.x -= velocity.x * 10.0 * delta;
         velocity.z -= velocity.z * 10.0 * delta;
-        
-        direction.z = Number(moveForward) - Number(moveBackward);
-        direction.x = Number(moveRight) - Number(moveLeft);
-        direction.normalize(); 
 
-        const speed = 40.0;
-        if (moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
-        if (moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
+        if (isMobile) {
+            // ── Mobile : joystick analogique (0.0 → 1.0 proportionnel)
+            // Combine joystick + clavier si branché (ex. manette bluetooth)
+            const fz = joystickY + (Number(moveForward)  - Number(moveBackward));
+            const fx = joystickX + (Number(moveRight)    - Number(moveLeft));
+            velocity.z -= fz * 40.0 * delta;
+            velocity.x -= fx * 40.0 * delta;
 
-        // Application du mouvement à la caméra
+        } else {
+            // ── PC : booleans clavier + normalisation pour la diagonale
+            direction.z = Number(moveForward)  - Number(moveBackward);
+            direction.x = Number(moveRight)    - Number(moveLeft);
+            direction.normalize();
+            if (moveForward  || moveBackward) velocity.z -= direction.z * 40.0 * delta;
+            if (moveLeft     || moveRight)    velocity.x -= direction.x * 40.0 * delta;
+        }
+
         controls.moveRight(-velocity.x * delta);
         controls.moveForward(-velocity.z * delta);
 
-        // Limites des murs du musée
+        // Limites des murs du musée (et de la zone dans la toile)
         const padding = 9.2;
         let hitWall = false;
-        
         if (camera.position.x < -padding) { camera.position.x = -padding; hitWall = true; }
-        if (camera.position.x > padding) { camera.position.x = padding; hitWall = true; }
+        if (camera.position.x >  padding) { camera.position.x =  padding; hitWall = true; }
         if (camera.position.z < -padding) { camera.position.z = -padding; hitWall = true; }
-        if (camera.position.z > padding) { camera.position.z = padding; hitWall = true; }
-        
-        // Si on se cogne, on vibre un petit coup sec !
-        if (hitWall && isMobileTouch && (Math.abs(velocity.x) > 1 || Math.abs(velocity.z) > 1)) {
-            triggerHaptic(30); 
-        }
+        if (camera.position.z >  padding) { camera.position.z =  padding; hitWall = true; }
+
+        if (hitWall && isMobileTouch) triggerHaptic(30);
     }
-    
-    // Mise à jour des animations 3D
-    mixers.forEach(mixer => mixer.update(delta));
+
+    mixers.forEach(m => m.update(delta));
     movingNPCs.forEach(npc => npc.update(delta));
     updateWorldAnimations(delta);
-
-    // MISE À JOUR DE LA DÉTECTION (Raycaster)
     updateInteractions(camera, raycaster, paintings);
 
     prevTime = time;

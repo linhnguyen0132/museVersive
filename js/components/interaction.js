@@ -15,6 +15,9 @@ let savedCameraPosition = null;
 // Détection mobile locale pour adapter les textes
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (window.innerWidth <= 1024 && navigator.maxTouchPoints > 0);
 
+// Exposé pour que main.js puisse bloquer la physique pendant les transitions
+export function isInTransition() { return isTransitioning; }
+
 export function setupInteractions(scene, camera, raycaster, paintings) {
     // --- Menu d'interaction (proximité tableau) ---
     interactMenu = document.createElement('div');
@@ -205,9 +208,9 @@ function flyToPainting(scene, camera, targetPainting) {
                         duration: 2.0,
                         delay: 0.5,
                         onComplete: () => {
-                            isTransitioning = false;
+                            // isTransitioning reste true pendant la marche d'entrée
                             showExitHint();
-                            walkIntoWorld(camera);
+                            walkIntoWorld(camera, () => { isTransitioning = false; });
                         }
                     });
                 }
@@ -216,17 +219,20 @@ function flyToPainting(scene, camera, targetPainting) {
     });
 }
 
-function walkIntoWorld(camera) {
+function walkIntoWorld(camera, onDone) {
     const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
 
+    // Avancée principale — appelle onDone quand terminée → libère la physique
     gsap.to(camera.position, {
         x: camera.position.x + dir.x * 5,
         y: camera.position.y + dir.y * 5,
         z: camera.position.z + dir.z * 5,
         duration: 3.0,
         ease: "power1.out",
+        onComplete: onDone,
     });
 
+    // Légère oscillation (simulation de pas) — indépendante
     gsap.to(camera.position, {
         y: camera.position.y - 0.06,
         duration: 0.55,
