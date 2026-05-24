@@ -13,10 +13,10 @@ def convert_mp3(soundIn, soundOut, input_format="wav"):
     sound.export(soundOut, format="mp3")
 
 
-#convert_mp3("finalSounds/mergedBeach.wav", "finalSounds/Beach.mp3")
-#convert_mp3("finalSounds/mergedCity.wav", "finalSounds/City.mp3")
-#convert_mp3("finalSounds/mergedScream.wav", "finalSounds/Scream.mp3")
-#convert_mp3("finalSounds/mergedStarry.wav", "finalSounds/Starry.mp3", input_format="flac")
-#convert_mp3("finalSounds/mergedWinter.wav", "finalSounds/Winter.mp3")
-convert_mp3("finalSounds/mergedWater.wav", "finalSounds/Water.mp3")
+#convert_mp3("mergedBeach.wav", "mp3/Beach.mp3")
+#convert_mp3("mergedCity.wav", "mp3/City.mp3")
+#convert_mp3("mergedScream.wav", "mp3/Scream.mp3")
+#convert_mp3("mergedStarry.wav", "mp3/Starry.mp3", input_format="flac")
+#convert_mp3("mergedWinter.wav", "mp3/Winter.mp3")
+convert_mp3("mergedWater.wav", "mp3/Water.mp3")
 
