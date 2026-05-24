@@ -66,7 +66,52 @@ export function createPainting(scene, imagePath, title, x, y, z, rotationY, widt
     paintingGroup.rotation.y = rotationY;
 
     paintingGroup.name = title;
+        // ===================================
+    // THE SCREAM ANIMÉ
+    // ===================================
 
+    if (title === "The Scream") {
+
+        const figureTexture = textureLoader.load(
+            'assets/painting/theScream/layers/the-scream-figure.png'
+        );
+
+        figureTexture.colorSpace =
+            THREE.SRGBColorSpace;
+
+        const figureGeo =
+            new THREE.PlaneGeometry(
+                width ,
+                height 
+            );
+
+        const figureMat =
+            new THREE.MeshBasicMaterial({
+                map: figureTexture,
+                transparent: true,
+                side: THREE.DoubleSide
+            });
+
+        const figure = new THREE.Mesh(
+            figureGeo,
+            figureMat
+        );
+
+        // devant le tableau
+        figure.position.set(
+            0,
+            0,
+            0.06
+        );
+
+        // animation
+        figure.userData.isScreamFigure = true;
+        figure.userData.baseY = figure.position.y;
+
+        paintingGroup.add(figure);
+
+        console.log("SCREAM FIGURE ADDED");
+    }
     scene.add(paintingGroup);
     return paintingGroup;
 }

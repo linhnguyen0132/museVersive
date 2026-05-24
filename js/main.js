@@ -128,7 +128,36 @@ function animate() {
 
     // MISE À JOUR DE LA DÉTECTION (Raycaster)
     updateInteractions(camera, raycaster, paintings);
+        scene.traverse((obj) => {
 
+        if (obj.userData.isScreamFigure) {
+
+            const t = time * 0.001;
+
+            // respiration
+            const breathe =
+                1 + Math.sin(t * 3) * 0.02;
+
+            obj.scale.set(
+                breathe,
+                breathe,
+                1
+            );
+
+            // vibration
+            obj.position.x =
+                Math.sin(t * 20) * 0.01;
+
+            // flottement
+            obj.position.y =
+                obj.userData.baseY +
+                Math.sin(t * 2) * 0.02;
+
+            // rotation
+            obj.rotation.z =
+                Math.sin(t * 2) * 0.01;
+        }
+    });
     prevTime = time;
     renderer.render(scene, camera);
 }
