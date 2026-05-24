@@ -3,7 +3,7 @@ import { PointerLockControls } from 'three/addons/controls/PointerLockControls.j
 import { createMuseum } from './components/museum.js';
 import { setupInteractions, updateInteractions } from './components/interaction.js';
 import { updateWorldAnimations } from './components/worlds.js';
-
+import { playWorldMusic, stopWorldMusic } from './components/audio.js';
 // --- VARIABLES GLOBALES ---
 let camera, scene, renderer, controls;
 let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;

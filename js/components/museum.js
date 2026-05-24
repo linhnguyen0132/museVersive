@@ -134,10 +134,17 @@ export function createMuseum(scene, mixers, movingNPCs) {
 
     // CRÉATION DES TABLEAUX ET ENREGISTREMENT DANS LA LISTE
     const paintings = []; 
+<<<<<<< HEAD
     paintings.push(createPainting(scene, 'assets/textures/starry_night.jpg', 'La Nuit étoilée', 0, 4.5, -9.9, 0, 4, 3));
     paintings.push(createPainting(scene, 'assets/textures/winter.png', 'Chasseurs dans la neige', -9.9, 4.5, 0, Math.PI / 2, 4, 3));
     paintings.push(createPainting(scene, 'assets/textures/scream.jpg', 'Le Cri', 9.9, 4.5, 0, -Math.PI / 2, 4, 3));
     paintings.push(createPainting(scene, 'assets/textures/city.png', 'Le Café de nuit', 0, 4.5, 9.9, Math.PI, 4, 3));
+=======
+    paintings.push(createPainting(scene, 'assets/textures/starry_night.jpg', 'Starry Night', 0, 4.5, -9.9, 0, 4, 3)); 
+    paintings.push(createPainting(scene, 'assets/textures/winter.png', 'March in the Birch Woods', -9.9, 4.5, 0, Math.PI / 2, 4, 3));
+    paintings.push(createPainting(scene, 'assets/textures/scream.jpg', 'The Scream', 9.9, 4.5, 0, -Math.PI / 2, 4, 3));
+    paintings.push(createPainting(scene, 'assets/textures/city.png', 'City Hall at Thorn', 0, 4.5, 9.9, Math.PI, 4, 3));
+>>>>>>> 92d5c9528fc91d4168d7ed9bd9eb9643514c4c1c
 
     // PNJ
     loadAnimatedNPC(scene, mixers, 'models/Standing idle (2).glb', 0, 0, -7, 0, -9.9, 1.5);
@@ -154,7 +161,7 @@ export function createMuseum(scene, mixers, movingNPCs) {
     createBench(scene, 0, 0, 0);
     loadAnimatedNPC(scene, mixers, 'models/Sitting.glb', 0, 0.09, -0.3, 0, -9.9, 1.0);
 
-    const plantPath = 'models/plant1.glb';
+    const plantPath = 'models/plant2.glb';
     const plantScale = 1.2; 
     loadStaticDecoration(scene, plantPath, -8.8, -8.8, plantScale);
     loadStaticDecoration(scene, plantPath, 8.8, -8.8, plantScale);

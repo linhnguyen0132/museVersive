@@ -238,6 +238,7 @@ function walkIntoWorld(camera) {
 function exitPainting(scene, camera) {
     isTransitioning = true;
     hideExitHint();
+    
 
     gsap.to(fadeOverlay, {
         opacity: 1,
