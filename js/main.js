@@ -3,6 +3,7 @@ import { PointerLockControls } from 'three/addons/controls/PointerLockControls.j
 import { createMuseum } from './components/museum.js';
 import { setupInteractions, updateInteractions, isInTransition } from './components/interaction.js';
 import { updateWorldAnimations } from './components/worlds.js';
+import { setupGyroscope, requestGyroPermission, isGyroActive } from './components/gyroscope.js';
 
 // ─── Variables globales ───────────────────────────────────────────────────────
 let camera, scene, renderer, controls;
@@ -20,6 +21,9 @@ const mixers    = [];
 const movingNPCs = [];
 const raycaster  = new THREE.Raycaster();
 let   paintings  = [];
+// Objets avec animations custom — rempli UNE SEULE FOIS après createMuseum()
+// Evite un scene.traverse() coûteux à chaque frame
+let animatedObjects = [];
 
 // Variables regard tactile
 let isMobileTouch = false;
@@ -55,10 +59,18 @@ function init() {
     paintings = createMuseum(scene, mixers, movingNPCs);
     setupInteractions(scene, camera, raycaster, paintings);
 
-    renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Capé à 2× pour les performances
+    // Cache des objets animés — traverse unique, jamais répété en boucle
+    scene.traverse((obj) => {
+        if (obj.userData.isScreamFigure || obj.userData.isScreamSky || obj.userData.isStarryTree) {
+            animatedObjects.push(obj);
+        }
+    });
+
+    // Sur mobile : antialias et shadows désactivés (trop coûteux pour le GPU)
+    renderer = new THREE.WebGLRenderer({ antialias: !isMobile });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.5 : 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.enabled = !isMobile;
     document.body.appendChild(renderer.domElement);
 
     window.addEventListener('resize', onWindowResize);
@@ -157,12 +169,17 @@ function setupMobileTouch() {
             </button>
         `;
 
-        document.getElementById('enter-btn').addEventListener('click', () => {
+        // Demande la permission gyroscope iOS depuis ce geste user
+        document.getElementById('enter-btn').addEventListener('click', async () => {
+            await requestGyroPermission();   // Dialogue iOS si nécessaire, no-op sur Android
             document.getElementById('blocker').style.display = 'none';
         });
     }
 
-    // 3. Joystick nipplejs — ANALOGIQUE (data.vector donne -1 → +1 en continu)
+    // 3. Gyroscope (regard par orientation physique du téléphone dans les toiles)
+    setupGyroscope(camera);
+
+    // 4. Joystick nipplejs — ANALOGIQUE (data.vector donne -1 → +1 en continu)
     if (typeof nipplejs !== 'undefined') {
         const joystick = nipplejs.create({
             zone:     joystickZone,
@@ -203,6 +220,9 @@ function setupMobileTouch() {
         if (e.target.closest('#joystick-zone') || e.target.closest('#blocker') ||
             e.target.closest('#interact-menu')  || e.target.closest('#exit-hint')) return;
         e.preventDefault();   // Empêche le scroll iOS
+
+        // Le gyroscope gère le regard dans les toiles → ne pas interférer
+        if (isGyroActive()) return;
 
         // Cherche NOTRE doigt par identifiant (pas forcément touches[0])
         let lookTouch = null;
@@ -294,93 +314,33 @@ function animate() {
     movingNPCs.forEach(npc => npc.update(delta));
     updateWorldAnimations(delta);
     updateInteractions(camera, raycaster, paintings);
-        scene.traverse((obj) => {
-            const t = time * 0.001;
-            // FIGURE
-            if (obj.userData.isScreamFigure) {
 
-                // respiration
-                const breathe =
-                    1 + Math.sin(t * 3) * 0.02;
+    // Animations custom — itère UNIQUEMENT le cache (pas de scene.traverse par frame)
+    const t = time * 0.001;
+    for (const obj of animatedObjects) {
+        if (obj.userData.isScreamFigure) {
+            const breathe = 1 + Math.sin(t * 3) * 0.02;
+            obj.scale.set(breathe, breathe, 1);
+            obj.position.x = Math.sin(t * 20) * 0.01;
+            obj.position.y = obj.userData.baseY + Math.sin(t * 2) * 0.02;
+            obj.rotation.z = Math.sin(t * 2) * 0.01;
+        }
+        if (obj.userData.isScreamSky) {
+            obj.position.x = Math.sin(t * 0.3) * 0.01;
+            obj.position.y = obj.userData.baseY + Math.sin(t * 0.8) * 0.03;
+            obj.rotation.z = Math.sin(t * 0.2) * 0.003;
+            obj.scale.x    = 1 + Math.sin(t * 0.5) * 0.01;
+        }
+        if (obj.userData.isStarryTree) {
+            const breathe = 1 + Math.sin(t * 0.8) * 0.01;
+            obj.rotation.z = Math.sin(t * 1.5) * 0.025;
+            obj.rotation.y = Math.cos(t * 8.0) * 0.005;
+            obj.scale.set(breathe, breathe, breathe);
+            obj.position.x = obj.userData.baseX + Math.sin(t * 0.5) * 0.01;
+            obj.position.y = obj.userData.baseY + Math.cos(t * 0.7) * 0.01;
+        }
+    }
 
-                obj.scale.set(
-                    breathe,
-                    breathe,
-                    1
-                );
-
-                // vibration
-                obj.position.x =
-                    Math.sin(t * 20) * 0.01;
-
-                // flottement
-                obj.position.y =
-                    obj.userData.baseY +
-                    Math.sin(t * 2) * 0.02;
-
-                // rotation
-                obj.rotation.z =
-                    Math.sin(t * 2) * 0.01;
-            }
-            // SKY 
-            if (obj.userData.isScreamSky) {
-
-                    const t = time * 0.001;
-
-                    const baseY =
-                        obj.userData.baseY;
-
-                    // vibration lente
-                    obj.position.x =
-                        Math.sin(t * 0.3) * 0.01;
-
-                    // flottement
-                    obj.position.y =
-                        baseY +
-                        Math.sin(t * 0.8) * 0.03;
-
-                    // rotation subtile
-                    obj.rotation.z =
-                        Math.sin(t * 0.2) * 0.003;
-
-                    // respiration horizontale
-                    obj.scale.x =
-                        1 + Math.sin(t * 0.5) * 0.01;
-                }
-
-            // Starry Night - Tree
-            if (obj.userData.isStarryTree) {
-
-                    // oscillation principale
-                    obj.rotation.z =
-                        Math.sin(t * 1.5) * 0.025;
-
-                    // micro vibration
-                    obj.rotation.y =
-                        Math.cos(t * 8.0) * 0.005;
-
-                    // respiration lente
-                    const breathe =
-                        1 + Math.sin(t * 0.8) * 0.01;
-
-                    obj.scale.set(
-                        breathe,
-                        breathe,
-                        breathe
-                    );
-
-                    // léger flottement
-                    obj.position.x =
-                        obj.userData.baseX +
-                        Math.sin(t * 0.5) * 0.01;
-
-                    obj.position.y =
-                        obj.userData.baseY +
-                        Math.cos(t * 0.7) * 0.01;
-                }
-    });
-
-   
     prevTime = time;
     renderer.render(scene, camera);
 }
