@@ -175,7 +175,7 @@ export function createMuseum(scene, mixers, movingNPCs) {
     createCeilingLamp(scene, 5, 5);
     createCeilingLamp(scene, 0, 0);
 
-    createSnow(scene, -9.4, 3, 3);
+    createSnow(scene, -8, 3, 3);
 
     // CRÉATION DES TABLEAUX ET ENREGISTREMENT DANS LA LISTE
     const paintings = []; 
