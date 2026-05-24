@@ -154,7 +154,7 @@ export function createMuseum(scene, mixers, movingNPCs) {
     createBench(scene, 0, 0, 0);
     loadAnimatedNPC(scene, mixers, 'models/Sitting.glb', 0, 0.09, -0.3, 0, -9.9, 1.0);
 
-    const plantPath = 'models/plant1.glb';
+    const plantPath = 'models/plant2.glb';
     const plantScale = 1.2; 
     loadStaticDecoration(scene, plantPath, -8.8, -8.8, plantScale);
     loadStaticDecoration(scene, plantPath, 8.8, -8.8, plantScale);
