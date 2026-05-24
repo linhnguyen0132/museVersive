@@ -1,0 +1,22 @@
+# Dépendances
+node_modules/
+
+# Outils locaux
+.claude/
+
+# Fichiers HDR (trop lourds pour GitHub, ~70-100 Mo chacun)
+# Pour les utiliser localement, place-les dans assets/panoramas/
+*.hdr
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+npm-debug.log*
+
+# Builds / dist
+dist/
+build/
