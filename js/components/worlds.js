@@ -8,10 +8,10 @@ import * as THREE from 'three';
 // import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 
 const PANORAMAS = {
-    'Starry Night': 'assets/panoramas/starry_night_pano.jpg',
-    'Le Cri':       'assets/panoramas/the_scream_pano.jpg',
-    'Hiver':        'assets/panoramas/winter_scene_pano.jpg',
-    'Ville':        'assets/panoramas/thorn_town_hall_pano.jpg',
+    'La Nuit étoilée':         'assets/panoramas/starry_night_pano.jpg',
+    'Le Cri':                  'assets/panoramas/the_scream_pano.jpg',
+    'Chasseurs dans la neige': 'assets/panoramas/winter_scene_pano.jpg',
+    'Le Café de nuit':         'assets/panoramas/thorn_town_hall_pano.jpg',
 };
 
 const textureLoader = new THREE.TextureLoader();

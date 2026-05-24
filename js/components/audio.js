@@ -1,13 +1,10 @@
 // js/components/audio.js
-// ══════════════════════════════════════════════════════════════════════
-//  CONFIGURATION — insère ici les chemins vers tes fichiers audio.
-//  Dépose tes fichiers dans assets/sounds/ puis remplis les valeurs.
-// ══════════════════════════════════════════════════════════════════════
+
 const TRACKS = {
-    'Starry Night': null, // ex: 'assets/sounds/starry_night.mp3'  (ex. "Vincent" – Don McLean)
-    'Le Cri':       null, // ex: 'assets/sounds/le_cri.mp3'        (ex. Grieg – In the Hall…)
-    'Hiver':        null, // ex: 'assets/sounds/hiver.mp3'         (ex. Vivaldi – L'Hiver)
-    'Ville':        null, // ex: 'assets/sounds/ville.mp3'         (ex. ambiance urbaine + pluie)
+    'La Nuit étoilée':         null, // ex: 'assets/sounds/starry_night.mp3'  (ex. "Vincent" – Don McLean)
+    'Le Cri':                  null, // ex: 'assets/sounds/le_cri.mp3'        (ex. Grieg – In the Hall of the Mountain King)
+    'Chasseurs dans la neige': null, // ex: 'assets/sounds/hiver.mp3'         (ex. Vivaldi – L'Hiver)
+    'Le Café de nuit':         null, // ex: 'assets/sounds/cafe.mp3'          (ex. ambiance jazz / bistrot parisien)
 };
 
 const FADE_STEPS    = 40;

@@ -134,10 +134,10 @@ export function createMuseum(scene, mixers, movingNPCs) {
 
     // CRÉATION DES TABLEAUX ET ENREGISTREMENT DANS LA LISTE
     const paintings = []; 
-    paintings.push(createPainting(scene, 'assets/textures/starry_night.jpg', 'Starry Night', 0, 4.5, -9.9, 0, 4, 3)); 
-    paintings.push(createPainting(scene, 'assets/textures/winter.png', 'Hiver', -9.9, 4.5, 0, Math.PI / 2, 4, 3));
+    paintings.push(createPainting(scene, 'assets/textures/starry_night.jpg', 'La Nuit étoilée', 0, 4.5, -9.9, 0, 4, 3));
+    paintings.push(createPainting(scene, 'assets/textures/winter.png', 'Chasseurs dans la neige', -9.9, 4.5, 0, Math.PI / 2, 4, 3));
     paintings.push(createPainting(scene, 'assets/textures/scream.jpg', 'Le Cri', 9.9, 4.5, 0, -Math.PI / 2, 4, 3));
-    paintings.push(createPainting(scene, 'assets/textures/city.png', 'Ville', 0, 4.5, 9.9, Math.PI, 4, 3));
+    paintings.push(createPainting(scene, 'assets/textures/city.png', 'Le Café de nuit', 0, 4.5, 9.9, Math.PI, 4, 3));
 
     // PNJ
     loadAnimatedNPC(scene, mixers, 'models/Standing idle (2).glb', 0, 0, -7, 0, -9.9, 1.5);
