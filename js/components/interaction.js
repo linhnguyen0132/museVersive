@@ -12,6 +12,9 @@ let insidePainting = false;
 let activeWorldGroup = null;
 let savedCameraPosition = null;
 
+// Détection mobile locale pour adapter les textes
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (window.innerWidth <= 1024 && navigator.maxTouchPoints > 0);
+
 export function setupInteractions(scene, camera, raycaster, paintings) {
     // --- Menu d'interaction (proximité tableau) ---
     interactMenu = document.createElement('div');
@@ -30,51 +33,23 @@ export function setupInteractions(scene, camera, raycaster, paintings) {
         font-family: 'Georgia', serif;
         color: white;
         z-index: 100;
-        pointer-events: none;
+        pointer-events: auto; /* CRUCIAL : Permet de cliquer dessus ! */
+        cursor: pointer;      /* Curseur main */
         backdrop-filter: blur(6px);
         min-width: 300px;
         box-shadow: 0 0 24px rgba(212, 175, 55, 0.2);
         opacity: 0;
-        transition: opacity 0.3s ease, transform 0.3s ease;
-    `;
-    interactMenu.innerHTML = `
-        <div style="
-            font-size: 11px;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            color: #d4af37;
-            margin-bottom: 8px;
-            opacity: 0.8;
-        ">Œuvre d'art</div>
-        <div id="menu-title" style="
-            font-size: 20px;
-            color: #ffffff;
-            margin-bottom: 18px;
-            font-style: italic;
-        "></div>
-        <div style="
-            width: 40px;
-            height: 1px;
-            background: #d4af37;
-            margin: 0 auto 18px;
-            opacity: 0.5;
-        "></div>
-        <div style="font-size: 13px; color: #cccccc;">
-            Appuyez sur
-            <span style="
-                background: rgba(212,175,55,0.15);
-                border: 1px solid #d4af37;
-                padding: 2px 10px;
-                border-radius: 4px;
-                color: #d4af37;
-                font-family: monospace;
-                font-size: 14px;
-                font-weight: bold;
-            ">E</span>
-            pour entrer dans la toile
-        </div>
+        transition: opacity 0.3s ease, transform 0.3s ease, background 0.2s;
     `;
     document.body.appendChild(interactMenu);
+
+    // Événement Clic/Toucher pour Entrer
+    interactMenu.addEventListener('click', () => {
+        if (currentTarget && !isTransitioning && !insidePainting) {
+            if (navigator.vibrate) try { navigator.vibrate([30, 50, 30]); } catch(e){}
+            flyToPainting(scene, camera, currentTarget);
+        }
+    });
 
     // --- Indicateur de sortie (affiché dans la toile) ---
     exitHint = document.createElement('div');
@@ -89,28 +64,30 @@ export function setupInteractions(scene, camera, raycaster, paintings) {
         border-radius: 8px;
         padding: 10px 24px;
         font-family: 'Georgia', serif;
-        font-size: 13px;
-        color: #cccccc;
+        font-size: 14px;
+        color: #ffffff;
         z-index: 100;
-        pointer-events: none;
+        pointer-events: auto; /* CRUCIAL : Permet de cliquer dessus ! */
+        cursor: pointer;      /* Curseur main */
         backdrop-filter: blur(4px);
         opacity: 0;
-        transition: opacity 0.4s ease, transform 0.4s ease;
+        transition: opacity 0.4s ease, transform 0.4s ease, background 0.2s;
     `;
-    exitHint.innerHTML = `
-        Appuyez sur
-        <span style="
-            background: rgba(212,175,55,0.15);
-            border: 1px solid #d4af37;
-            padding: 1px 8px;
-            border-radius: 4px;
-            color: #d4af37;
-            font-family: monospace;
-            font-weight: bold;
-        ">Retour arrière</span>
-        pour sortir de la toile
-    `;
+    
+    // Texte dynamique pour la sortie
+    exitHint.innerHTML = isMobile 
+        ? `👆 <span style="color: #d4af37; font-weight: bold;">Toucher ici</span> pour sortir`
+        : `Appuyez sur <span style="background: rgba(212,175,55,0.15); border: 1px solid #d4af37; padding: 1px 8px; border-radius: 4px; color: #d4af37; font-family: monospace; font-weight: bold;">Retour</span> pour sortir`;
+    
     document.body.appendChild(exitHint);
+
+    // Événement Clic/Toucher pour Sortir
+    exitHint.addEventListener('click', () => {
+        if (insidePainting && !isTransitioning) {
+            if (navigator.vibrate) try { navigator.vibrate(20); } catch(e){}
+            exitPainting(scene, camera);
+        }
+    });
 
     // --- Fondu au noir ---
     fadeOverlay = document.createElement('div');
@@ -120,7 +97,7 @@ export function setupInteractions(scene, camera, raycaster, paintings) {
     `;
     document.body.appendChild(fadeOverlay);
 
-    // --- Touches ---
+    // --- Touches Clavier (Restent actives pour les joueurs PC) ---
     window.addEventListener('keydown', (event) => {
         if (event.code === 'KeyE' && currentTarget && !isTransitioning && !insidePainting) {
             flyToPainting(scene, camera, currentTarget);
@@ -143,8 +120,19 @@ export function updateInteractions(camera, raycaster, paintings) {
 
         if (currentTarget !== painting) {
             currentTarget = painting;
-            const titleEl = document.getElementById('menu-title');
-            if (titleEl) titleEl.textContent = painting.name;
+            
+            // Mise à jour dynamique du texte du menu selon l'appareil
+            const instructionHTML = isMobile 
+                ? `<div style="font-size: 15px; color: #d4af37; font-weight: bold; margin-top: 10px; animation: pulse 1.5s infinite;">👆 Toucher pour entrer</div>`
+                : `<div style="font-size: 13px; color: #cccccc;">Appuyez sur <span style="background: rgba(212,175,55,0.15); border: 1px solid #d4af37; padding: 2px 10px; border-radius: 4px; color: #d4af37; font-family: monospace; font-size: 14px; font-weight: bold;">E</span> ou cliquez pour entrer</div>`;
+
+            interactMenu.innerHTML = `
+                <div style="font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: #d4af37; margin-bottom: 8px; opacity: 0.8;">Œuvre d'art</div>
+                <div style="font-size: 20px; color: #ffffff; margin-bottom: 18px; font-style: italic;">${painting.name}</div>
+                <div style="width: 40px; height: 1px; background: #d4af37; margin: 0 auto 12px; opacity: 0.5;"></div>
+                ${instructionHTML}
+            `;
+            
             showMenu();
         }
         return;
@@ -228,8 +216,6 @@ function flyToPainting(scene, camera, targetPainting) {
 }
 
 function walkIntoWorld(camera) {
-    // Avance doucement dans la direction du regard (-Z après reset quaternion)
-    // Le joueur sent qu'il "entre" dans la toile
     const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
 
     gsap.to(camera.position, {
@@ -240,7 +226,6 @@ function walkIntoWorld(camera) {
         ease: "power1.out",
     });
 
-    // Légère oscillation verticale → simulation de pas
     gsap.to(camera.position, {
         y: camera.position.y - 0.06,
         duration: 0.55,
