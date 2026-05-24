@@ -1,10 +1,10 @@
 import * as THREE from 'three'
 
-import { createScream }
-from './paintings/theScream.js'
+import { createStarryNight }
+from './paintings/starryNight.js'
 
-import { animateScream }
-from './animations/animations_scream.js'
+import { animateStarryNight }
+from './animations/animations_starryNight.js'
 
 import { OrbitControls }
 from 'three/examples/jsm/controls/OrbitControls.js'
@@ -30,13 +30,14 @@ renderer.setSize(
 )
 renderer.outputColorSpace =
     THREE.SRGBColorSpace
+
 document.body.appendChild(renderer.domElement)
 
 const loader =
     new THREE.TextureLoader()
 
-const screamObjects =
-    createScream(scene, loader)
+const starryNightObjects =
+    createStarryNight(scene, loader)
 
 const clock =
     new THREE.Clock()
@@ -63,7 +64,7 @@ function animate() {
     
     const t =
         clock.getElapsedTime()
-    animateScream(screamObjects, t)
+    animateStarryNight(starryNightObjects, t)
 
     renderer.render(scene, camera)
 }
