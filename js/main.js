@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 import { createMuseum } from './components/museum.js';
 import { setupInteractions, updateInteractions } from './components/interaction.js';
+import { updateWorldAnimations } from './components/worlds.js';
 
 // --- VARIABLES GLOBALES ---
 let camera, scene, renderer, controls;
@@ -122,7 +123,8 @@ function animate() {
     }
     
     mixers.forEach(mixer => mixer.update(delta));
-    movingNPCs.forEach(npc => npc.update(delta)); 
+    movingNPCs.forEach(npc => npc.update(delta));
+    updateWorldAnimations(delta);
 
     // MISE À JOUR DE LA DÉTECTION (Raycaster)
     updateInteractions(camera, raycaster, paintings);

@@ -3,20 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon Musée Virtuel - Three.js</title>
+    <title>MuséeVersive</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
     <div id="blocker">
         <div id="instructions">
-            <h1>Entrer dans le Musée</h1>
-            <p><strong>Cliquez ici pour commencer</strong></p>
-            <p>
-                Déplacements : Z, Q, S, D (ou W, A, S, D)<br/>
-                Regarder : Bouger la souris<br/>
-                Quitter : Touche ÉCHAP (ESC)
-            </p>
+
+            <div class="museum-logo">
+                <span class="logo-deco">✦</span>
+                <span class="logo-title">MuséeVersive</span>
+                <span class="logo-deco">✦</span>
+            </div>
+            <p class="museum-subtitle">Une expérience artistique immersive</p>
+
+            <div class="separator">
+                <span class="sep-line"></span>
+                <span class="sep-icon">🎨</span>
+                <span class="sep-line"></span>
+            </div>
+
+            <div class="controls-grid">
+                <div class="control-row">
+                    <div class="key-group">
+                        <span class="key">Z</span>
+                    </div>
+                    <span class="control-label">Avancer</span>
+                </div>
+                <div class="control-row">
+                    <div class="key-group">
+                        <span class="key">Q</span>
+                        <span class="key">S</span>
+                        <span class="key">D</span>
+                    </div>
+                    <span class="control-label">Gauche · Reculer · Droite</span>
+                </div>
+                <div class="control-row">
+                    <div class="key-group">
+                        <span class="key wide">🖱 Souris</span>
+                    </div>
+                    <span class="control-label">Regarder autour</span>
+                </div>
+                <div class="control-row">
+                    <div class="key-group">
+                        <span class="key key-gold">E</span>
+                    </div>
+                    <span class="control-label">Interagir avec un tableau</span>
+                </div>
+                <div class="control-row">
+                    <div class="key-group">
+                        <span class="key wide">⌫ Retour</span>
+                    </div>
+                    <span class="control-label">Sortir d'une toile</span>
+                </div>
+                <div class="control-row">
+                    <div class="key-group">
+                        <span class="key wide">Échap</span>
+                    </div>
+                    <span class="control-label">Pause</span>
+                </div>
+            </div>
+
+            <div class="separator">
+                <span class="sep-line"></span>
+            </div>
+
+            <button id="enter-btn">
+                <span class="btn-icon">▶</span>
+                Entrer dans le musée
+            </button>
+
+            <p class="enter-hint">Cliquez pour capturer la souris</p>
         </div>
     </div>
 
@@ -31,6 +91,5 @@
     </script>
 
     <script type="module" src="js/main.js"></script>
-
 </body>
 </html>

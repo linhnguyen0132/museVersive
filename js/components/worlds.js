@@ -1,75 +1,62 @@
 // js/components/worlds.js
 import * as THREE from 'three';
 
+// ── Correspondance tableau → panorama (JPG, compatibles GitHub) ───────
+// Les fichiers .hdr sont ignorés par git (trop lourds).
+// Si tu veux utiliser les HDR localement, remplace l'extension par .hdr
+// et décommente l'import RGBELoader ci-dessous.
+// import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+
+const PANORAMAS = {
+    'Starry Night': 'assets/panoramas/starry_night_pano.jpg',
+    'Le Cri':       'assets/panoramas/the_scream_pano.jpg',
+    'Hiver':        'assets/panoramas/winter_scene_pano.jpg',
+    'Ville':        'assets/panoramas/thorn_town_hall_pano.jpg',
+};
+
+const textureLoader = new THREE.TextureLoader();
+
+// Réservé pour des animations futures (vagues, etc.)
+export function updateWorldAnimations(_delta) {}
+
 export function loadArtworkWorld(scene, camera, artworkName) {
-    // 1. TÉLÉPORTATION : On envoie le joueur 1000 mètres au-dessus du musée !
-    const worldHeight = 1000;
-    camera.position.set(0, worldHeight + 1.7, 0);
+    const H = 1000;
+    camera.position.set(0, H + 1.7, 0);
+    camera.quaternion.set(0, 0, 0, 1); // regard vers -Z à l'entrée
 
-    // 2. Création du groupe qui contiendra ce nouveau monde
-    const worldGroup = new THREE.Group();
-    worldGroup.position.y = worldHeight;
+    const wg = new THREE.Group();
+    wg.position.y = H;
 
-    // Chargeur de textures pour nos Skyboxes
-    const textureLoader = new THREE.TextureLoader();
-
-    // 3. AMBIANCES SELON LE TABLEAU
-    if (artworkName === 'Starry Night') {
-        
-        // --- LE SKYDOME (Ciel panoramique) ---
-        // On crée une sphère énorme (rayon de 500)
-        const skyGeo = new THREE.SphereGeometry(500, 60, 40); 
-        // Tu devras mettre une image panoramique (360°) de ciel étoilé ici :
-        const skyTex = textureLoader.load('assets/textures/starry_sky.jpg'); 
-        
-        const skyMat = new THREE.MeshBasicMaterial({ 
-            map: skyTex, 
-            side: THREE.BackSide // TRÈS IMPORTANT : On applique la texture à l'INTÉRIEUR de la sphère
-        });
-        const skyDome = new THREE.Mesh(skyGeo, skyMat);
-        worldGroup.add(skyDome);
-        // ------------------------------------
-
-        // Un sol bleu nuit un peu magique
-        const floor = new THREE.Mesh(
-            new THREE.PlaneGeometry(1000, 1000), // Sol beaucoup plus grand pour rejoindre l'horizon
-            new THREE.MeshStandardMaterial({ color: 0x0a0a2a, roughness: 0.8 })
+    // ── Dôme panoramique ──────────────────────────────────────────────
+    const panoPath = PANORAMAS[artworkName];
+    if (panoPath) {
+        const texture = textureLoader.load(
+            panoPath,
+            undefined,
+            undefined,
+            (err) => console.error('Erreur chargement panorama :', panoPath, err)
         );
-        floor.rotation.x = -Math.PI / 2;
-        worldGroup.add(floor);
-
-        // Quelques particules brillantes pour la magie (optionnel)
-        const starsGeo = new THREE.BufferGeometry();
-        const starsPos = new Float32Array(1000 * 3);
-        for(let i=0; i<3000; i++) {
-            starsPos[i] = (Math.random() - 0.5) * 200; 
-        }
-        starsGeo.setAttribute('position', new THREE.BufferAttribute(starsPos, 3));
-        const starsMat = new THREE.PointsMaterial({ color: 0xffddaa, size: 0.5 });
-        worldGroup.add(new THREE.Points(starsGeo, starsMat));
-
-    } else if (artworkName === 'Le Cri') {
-        scene.background = new THREE.Color(0x8B0000); // Remplaçable par un SkyDome rougeoyant plus tard
-        const floor = new THREE.Mesh(
-            new THREE.PlaneGeometry(100, 100),
-            new THREE.MeshStandardMaterial({ color: 0x220500, roughness: 0.9 })
+        texture.colorSpace = THREE.SRGBColorSpace;
+        const dome = new THREE.Mesh(
+            new THREE.SphereGeometry(500, 60, 40),
+            new THREE.MeshBasicMaterial({ map: texture, side: THREE.BackSide })
         );
-        floor.rotation.x = -Math.PI / 2;
-        worldGroup.add(floor);
-
+        wg.add(dome);
     } else {
-        scene.background = new THREE.Color(0xcccccc); 
-        const floor = new THREE.Mesh(
-            new THREE.PlaneGeometry(100, 100),
-            new THREE.MeshBasicMaterial({ color: 0x555555, wireframe: true })
-        );
-        floor.rotation.x = -Math.PI / 2;
-        worldGroup.add(floor);
+        console.warn('Aucun panorama configuré pour :', artworkName);
     }
 
-    // 4. Lumière globale du monde
-    const light = new THREE.AmbientLight(0xffffff, 0.6);
-    worldGroup.add(light);
+    // ── Sol invisible (permet la navigation WASD) ─────────────────────
+    const floor = new THREE.Mesh(
+        new THREE.PlaneGeometry(1000, 1000),
+        new THREE.MeshBasicMaterial({ visible: false })
+    );
+    floor.rotation.x = -Math.PI / 2;
+    wg.add(floor);
 
-    scene.add(worldGroup);
+    // ── Lumière ambiante ──────────────────────────────────────────────
+    wg.add(new THREE.AmbientLight(0xffffff, 1.0));
+
+    scene.add(wg);
+    return wg;
 }

@@ -65,6 +65,8 @@ export function createPainting(scene, imagePath, title, x, y, z, rotationY, widt
     paintingGroup.position.set(x, y, z);
     paintingGroup.rotation.y = rotationY;
 
+    paintingGroup.name = title;
+
     scene.add(paintingGroup);
     return paintingGroup;
 }
