@@ -3,15 +3,13 @@ import { PointerLockControls } from 'three/addons/controls/PointerLockControls.j
 import { createMuseum } from './components/museum.js';
 import { setupInteractions, updateInteractions } from './components/interaction.js';
 import { updateWorldAnimations } from './components/worlds.js';
-import { playWorldMusic, stopWorldMusic } from './components/audio.js';
+
 // --- VARIABLES GLOBALES ---
 let camera, scene, renderer, controls;
 let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
 let prevTime = performance.now();
-
 // Détection stricte (Téléphone/Tablette vs PC)
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (window.innerWidth <= 1024 && navigator.maxTouchPoints > 0);
-
 const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
 const mixers = [];
@@ -80,22 +78,21 @@ function init() {
 }
 
 function setupControls() {
+    // controls est déjà instancié dans init() — on ajoute seulement les listeners
     const blocker = document.getElementById('blocker');
     const instructions = document.getElementById('instructions');
 
     // Sur PC, cliquer sur l'écran verrouille la souris
-    instructions.addEventListener('click', () => {
-        if (!isMobile) controls.lock();
+    instructions.addEventListener('click', () => controls.lock());
+
+    controls.addEventListener('lock', () => {
+        instructions.style.display = 'none';
+        blocker.style.display = 'none';
     });
-    
-    controls.addEventListener('lock', () => { 
-        instructions.style.display = 'none'; 
-        blocker.style.display = 'none'; 
-    });
-    
-    controls.addEventListener('unlock', () => { 
-        blocker.style.display = 'flex'; 
-        instructions.style.display = 'block'; 
+
+    controls.addEventListener('unlock', () => {
+        blocker.style.display = 'flex';
+        instructions.style.display = 'block';
     });
 
     const onKeyDown = (event) => {
@@ -119,87 +116,91 @@ function setupControls() {
 }
 
 function setupMobileTouch() {
-    isMobileTouch = true;
+    isMobileTouch = (('ontouchstart' in window) || (navigator.maxTouchPoints > 0));
 
-    // 1. Affiche la zone du joystick
-    const joystickZone = document.getElementById('joystick-zone');
-    if(joystickZone) joystickZone.style.display = 'block';
-    
-    // 2. Remplace les instructions PC par des instructions mobiles
-    const instructions = document.getElementById('instructions');
-    if(instructions) {
-        instructions.innerHTML = `
-            <div class="museum-logo">
-                <span class="logo-deco">✦</span>
-                <span class="logo-title">MuseVersive</span>
-                <span class="logo-deco">✦</span>
-            </div>
-            <p class="museum-subtitle">Touchez l'écran pour commencer</p>
-            <div class="separator"><span class="sep-line"></span></div>
-            <p class="enter-hint">Utilisez le joystick (gauche) pour marcher.<br/>Glissez sur l'écran (droite) pour regarder.</p>
-            <button id="enter-btn-mobile" style="margin-top:20px; padding:15px; border-radius:8px; border:none; background:white; color:black; font-weight:bold; font-size:16px;">
-                ▶ Entrer
-            </button>
-        `;
+    if (isMobileTouch) {
+        // 1. Affiche la zone du joystick
+        const joystickZone = document.getElementById('joystick-zone');
+        if(joystickZone) joystickZone.style.display = 'block';
         
-        // Masquer l'écran d'accueil au clic
-        document.getElementById('enter-btn-mobile').addEventListener('click', () => {
-            document.getElementById('blocker').style.display = 'none';
-        });
+        // 2. Remplace les instructions PC par des instructions mobiles
+        const instructions = document.getElementById('instructions');
+        if(instructions) {
+            instructions.innerHTML = `
+                <div class="museum-logo">
+                    <span class="logo-deco">✦</span>
+                    <span class="logo-title">MuseVersive</span>
+                    <span class="logo-deco">✦</span>
+                </div>
+                <p class="museum-subtitle">Touchez l'écran pour commencer</p>
+                <div class="separator"><span class="sep-line"></span></div>
+                <p class="enter-hint">Utilisez le joystick (gauche) pour marcher.<br/>Glissez sur l'écran (droite) pour regarder.</p>
+                <button id="enter-btn-mobile" style="margin-top:20px; padding:15px; border-radius:8px; border:none; background:white; color:black; font-weight:bold; font-size:16px;">
+                    ▶ Entrer
+                </button>
+            `;
+            
+            // Masquer l'écran d'accueil au clic
+            document.getElementById('enter-btn-mobile').addEventListener('click', () => {
+                document.getElementById('blocker').style.display = 'none';
+            });
+        }
+
+        // 3. Initialisation du Joystick (Nipple.js) pour avancer/reculer
+        if (typeof nipplejs !== 'undefined') {
+            const joystick = nipplejs.create({
+                zone: document.getElementById('joystick-zone'),
+                mode: 'static',
+                position: { left: '80px', bottom: '80px' }, // Un peu plus haut pour le pouce
+                color: 'white'
+            });
+
+            joystick.on('move', (evt, data) => {
+                const angle = data.angle.degree;
+                moveForward = moveBackward = moveLeft = moveRight = false;
+
+                if (angle > 45 && angle < 135) moveForward = true;
+                else if (angle >= 135 && angle <= 225) moveLeft = true;
+                else if (angle > 225 && angle < 315) moveBackward = true;
+                else moveRight = true;
+            });
+
+            joystick.on('end', () => {
+                moveForward = moveBackward = moveLeft = moveRight = false;
+            });
+        } else {
+            console.warn("Nipple.js n'est pas chargé dans le HTML.");
+        }
+
+        // 4. Gestion de la Caméra Tactile (Regarder autour de soi)
+        document.addEventListener('touchstart', (e) => {
+            if (e.target.closest('#joystick-zone') || e.target.closest('#blocker') ||
+                e.target.closest('#interact-menu') || e.target.closest('#exit-hint')) return;
+            touchStartX = e.touches[0].pageX;
+            touchStartY = e.touches[0].pageY;
+        }, { passive: false });
+
+        document.addEventListener('touchmove', (e) => {
+            if (e.target.closest('#joystick-zone') || e.target.closest('#blocker') ||
+                e.target.closest('#interact-menu') || e.target.closest('#exit-hint')) return;
+            e.preventDefault(); // Empêche le scrolling de la page
+            
+            const touchX = e.touches[0].pageX;
+            const touchY = e.touches[0].pageY;
+            
+            const deltaX = touchX - touchStartX;
+            const deltaY = touchY - touchStartY;
+            
+            camera.rotation.order = 'YXZ'; 
+            camera.rotation.y -= deltaX * lookSpeed;
+            camera.rotation.x -= deltaY * lookSpeed;
+            // Limite pour ne pas faire un salto avec la tête
+            camera.rotation.x = Math.max(-Math.PI / 2.5, Math.min(Math.PI / 2.5, camera.rotation.x));
+
+            touchStartX = touchX;
+            touchStartY = touchY;
+        }, { passive: false });
     }
-
-    // 3. Initialisation du Joystick (Nipple.js) pour avancer/reculer
-    if (typeof nipplejs !== 'undefined') {
-        const joystick = nipplejs.create({
-            zone: document.getElementById('joystick-zone'),
-            mode: 'static',
-            position: { left: '80px', bottom: '80px' }, // Un peu plus haut pour le pouce
-            color: 'white'
-        });
-
-        joystick.on('move', (evt, data) => {
-            const angle = data.angle.degree;
-            moveForward = moveBackward = moveLeft = moveRight = false;
-
-            if (angle > 45 && angle < 135) moveForward = true;
-            else if (angle >= 135 && angle <= 225) moveLeft = true;
-            else if (angle > 225 && angle < 315) moveBackward = true;
-            else moveRight = true;
-        });
-
-        joystick.on('end', () => {
-            moveForward = moveBackward = moveLeft = moveRight = false;
-        });
-    } else {
-        console.warn("Nipple.js n'est pas chargé dans le HTML.");
-    }
-
-    // 4. Gestion de la Caméra Tactile (Regarder autour de soi)
-    document.addEventListener('touchstart', (e) => {
-        if (e.target.closest('#joystick-zone') || e.target.closest('#blocker')) return;
-        touchStartX = e.touches[0].pageX;
-        touchStartY = e.touches[0].pageY;
-    }, { passive: false });
-
-    document.addEventListener('touchmove', (e) => {
-        if (e.target.closest('#joystick-zone') || e.target.closest('#blocker')) return;
-        e.preventDefault(); // Empêche le scrolling de la page
-        
-        const touchX = e.touches[0].pageX;
-        const touchY = e.touches[0].pageY;
-        
-        const deltaX = touchX - touchStartX;
-        const deltaY = touchY - touchStartY;
-        
-        camera.rotation.order = 'YXZ'; 
-        camera.rotation.y -= deltaX * lookSpeed;
-        camera.rotation.x -= deltaY * lookSpeed;
-        // Limite pour ne pas faire un salto avec la tête
-        camera.rotation.x = Math.max(-Math.PI / 2.5, Math.min(Math.PI / 2.5, camera.rotation.x));
-
-        touchStartX = touchX;
-        touchStartY = touchY;
-    }, { passive: false });
 }
 
 // Fonction utilitaire (Safe) pour les vibrations haptiques
@@ -222,8 +223,9 @@ function animate() {
     const time = performance.now();
     const delta = (time - prevTime) / 1000;
 
+    // Si la souris est verrouillée (PC) OU si on est sur mobile
     // Mouvement autorisé SI (PC & Souris verrouillée) OU SI (Mobile)
-    if ((!isMobile && controls.isLocked === true) || isMobileTouch) {
+    if ((!isMobile && controls.isLocked === true) || isMobile) {
         
         // Physique des déplacements (Friction)
         velocity.x -= velocity.x * 10.0 * delta;

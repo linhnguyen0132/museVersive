@@ -53,6 +53,7 @@ export function setupInteractions(scene, camera, raycaster, paintings) {
 
     // --- Indicateur de sortie (affiché dans la toile) ---
     exitHint = document.createElement('div');
+    exitHint.id = 'exit-hint';
     exitHint.style.cssText = `
         display: none;
         position: absolute;

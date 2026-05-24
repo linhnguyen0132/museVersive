@@ -1,17 +1,10 @@
 // js/components/audio.js
 
 const TRACKS = {
-<<<<<<< HEAD
-    'La Nuit étoilée':         null, // ex: 'assets/sounds/starry_night.mp3'  (ex. "Vincent" – Don McLean)
-    'Le Cri':                  null, // ex: 'assets/sounds/le_cri.mp3'        (ex. Grieg – In the Hall of the Mountain King)
-    'Chasseurs dans la neige': null, // ex: 'assets/sounds/hiver.mp3'         (ex. Vivaldi – L'Hiver)
-    'Le Café de nuit':         null, // ex: 'assets/sounds/cafe.mp3'          (ex. ambiance jazz / bistrot parisien)
-=======
     'Starry Night': 'assets/audio/mergedStarry.wav', // ex: 'assets/sounds/starry_night.mp3'  (ex. "Vincent" – Don McLean)
     'The Scream':       'assets/audio/mergedScream.wav' , // ex: 'assets/sounds/le_cri.mp3'        (ex. Grieg – In the Hall…)
     'March in the Birch Woods':        'assets/audio/mergedWinter.wav', // ex: 'assets/sounds/hiver.mp3'         (ex. Vivaldi – L'Hiver)
     'City Hall at Thorn':        'assets/audio/mergedCity.wav', // ex: 'assets/sounds/ville.mp3'         (ex. ambiance urbaine + pluie)
->>>>>>> 92d5c9528fc91d4168d7ed9bd9eb9643514c4c1c
 };
 
 const FADE_STEPS    = 40;
