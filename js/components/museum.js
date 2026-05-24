@@ -91,7 +91,50 @@ function createWallMoldings(scene, x, z, rotationY) {
     wallGroup.rotation.y = rotationY;
     scene.add(wallGroup);
 }
+function createSnow(scene, x, y, z) {
 
+    const snowGroup = new THREE.Group();
+
+    for (let i = 0; i < 200; i++) {
+
+        const snowGeo =
+            new THREE.CircleGeometry(
+                Math.random() * 0.03 + 0.01,
+                8
+            );
+
+        const snowMat =
+            new THREE.MeshBasicMaterial({
+                color: 0xffffff,
+                transparent: true,
+                opacity: Math.random() * 0.5 + 0.3
+            });
+
+        const flake =
+            new THREE.Mesh(
+                snowGeo,
+                snowMat
+            );
+
+        flake.position.set(
+            (Math.random() - 0.5) * 4,
+            Math.random() * 4,
+            (Math.random() - 0.5) * 10
+        );
+
+        // vitesse individuelle
+        flake.userData.speed =
+            Math.random() * 0.01 + 0.003;
+
+        snowGroup.add(flake);
+    }
+
+    snowGroup.position.set(x, y, z);
+
+    snowGroup.userData.isSnowGroup = true;
+
+    scene.add(snowGroup);
+}
 export function createMuseum(scene, mixers, movingNPCs) {
     const roomGeometry = new THREE.BoxGeometry(20, 8, 20); 
     const textureLoader = new THREE.TextureLoader();
@@ -132,13 +175,16 @@ export function createMuseum(scene, mixers, movingNPCs) {
     createCeilingLamp(scene, 5, 5);
     createCeilingLamp(scene, 0, 0);
 
+    createSnow(scene, -9.4, 3, 3);
+
     // CRÉATION DES TABLEAUX ET ENREGISTREMENT DANS LA LISTE
     const paintings = []; 
     paintings.push(createPainting(scene, 'assets/textures/starry_night.jpg', 'Starry Night', 0, 4.5, -9.9, 0, 4, 3)); 
     paintings.push(createPainting(scene, 'assets/textures/winter.png', 'March in the Birch Woods', -9.9, 4.5, 0, Math.PI / 2, 4, 3));
     paintings.push(createPainting(scene, 'assets/textures/scream.jpg', 'The Scream', 9.9, 4.5, 0, -Math.PI / 2, 4, 3));
     paintings.push(createPainting(scene, 'assets/textures/city.png', 'City Hall at Thorn', 0, 4.5, 9.9, Math.PI, 4, 3));
-
+    
+      
     // PNJ
     loadAnimatedNPC(scene, mixers, 'models/Standing idle (2).glb', 0, 0, -7, 0, -9.9, 1.5);
     loadAnimatedNPC(scene, mixers, 'models/Thinking.glb', -7, 0, 0, -9.9, 0, 1.1);
@@ -162,4 +208,5 @@ export function createMuseum(scene, mixers, movingNPCs) {
     loadStaticDecoration(scene, plantPath, 8.8, 8.8, plantScale);
 
     return paintings;
+    
 }

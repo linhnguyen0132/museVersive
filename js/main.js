@@ -347,6 +347,30 @@ function animate() {
                         obj.userData.baseY +
                         Math.cos(t * 0.7) * 0.01;
                 }
+                    // ======================
+        // SNOW PARTICLES
+        // ======================
+
+        if (obj.userData.isSnowGroup) {
+
+            obj.children.forEach((flake) => {
+
+                flake.position.y -=
+                    flake.userData.speed;
+
+                flake.position.x +=
+                    Math.sin(
+                        t +
+                        flake.position.y
+                    ) * 0.001;
+
+                // reset
+                if (flake.position.y < -2) {
+
+                    flake.position.y = 2;
+                }
+            });
+        }
     });
 
    
