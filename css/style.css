@@ -7,6 +7,13 @@ body {
     font-family: 'Inter', 'Segoe UI', sans-serif;
     user-select: none;
     background: #0a0a0a;
+    touch-action: none;   /* Empêche le scroll/rebond iOS sur le canvas */
+    -webkit-tap-highlight-color: transparent; /* Supprime le flash bleu au tap (Android/iOS) */
+}
+
+canvas {
+    touch-action: none;   /* Sécurité supplémentaire pour le canvas Three.js */
+    display: block;
 }
 
 /* ===== BLOCKER (fond semi-transparent sur la scène 3D) ===== */

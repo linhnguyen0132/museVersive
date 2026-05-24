@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { gsap } from 'gsap';
 import { loadArtworkWorld } from './worlds.js';
 import { playWorldMusic, stopWorldMusic } from './audio.js';
+import { activateGyroscope, deactivateGyroscope, isGyroActive, isGyroSupported } from './gyroscope.js';
 
 let currentTarget = null;
 let interactMenu = null;
@@ -14,6 +15,9 @@ let savedCameraPosition = null;
 
 // Détection mobile locale pour adapter les textes
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (window.innerWidth <= 1024 && navigator.maxTouchPoints > 0);
+
+// Exposé pour que main.js puisse bloquer la physique pendant les transitions
+export function isInTransition() { return isTransitioning; }
 
 export function setupInteractions(scene, camera, raycaster, paintings) {
     // --- Menu d'interaction (proximité tableau) ---
@@ -53,6 +57,7 @@ export function setupInteractions(scene, camera, raycaster, paintings) {
 
     // --- Indicateur de sortie (affiché dans la toile) ---
     exitHint = document.createElement('div');
+    exitHint.id = 'exit-hint';
     exitHint.style.cssText = `
         display: none;
         position: absolute;
@@ -161,6 +166,17 @@ function hideMenu() {
 }
 
 function showExitHint() {
+    // Met à jour le texte selon le mode actif (gyro ou tactile)
+    if (isMobile) {
+        const gyroLine = isGyroSupported()
+            ? `<div style="font-size:11px; color:rgba(212,175,55,0.55); letter-spacing:1.5px; margin-bottom:8px; text-transform:uppercase;">
+                   📱 Inclinez pour regarder
+               </div>`
+            : '';
+        exitHint.innerHTML = gyroLine +
+            `👆 <span style="color:#d4af37; font-weight:bold;">Toucher ici</span> pour sortir`;
+    }
+
     exitHint.style.display = 'block';
     requestAnimationFrame(() => {
         exitHint.style.opacity = '1';
@@ -204,9 +220,10 @@ function flyToPainting(scene, camera, targetPainting) {
                         duration: 2.0,
                         delay: 0.5,
                         onComplete: () => {
-                            isTransitioning = false;
-                            showExitHint();
-                            walkIntoWorld(camera);
+                            // isTransitioning reste true pendant la marche d'entrée
+                            activateGyroscope();     // Le regard passe en mode gyroscope
+                            showExitHint();          // Après activation (le texte reflète le mode)
+                            walkIntoWorld(camera, () => { isTransitioning = false; });
                         }
                     });
                 }
@@ -215,17 +232,20 @@ function flyToPainting(scene, camera, targetPainting) {
     });
 }
 
-function walkIntoWorld(camera) {
+function walkIntoWorld(camera, onDone) {
     const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
 
+    // Avancée principale — appelle onDone quand terminée → libère la physique
     gsap.to(camera.position, {
         x: camera.position.x + dir.x * 5,
         y: camera.position.y + dir.y * 5,
         z: camera.position.z + dir.z * 5,
         duration: 3.0,
         ease: "power1.out",
+        onComplete: onDone,
     });
 
+    // Légère oscillation (simulation de pas) — indépendante
     gsap.to(camera.position, {
         y: camera.position.y - 0.06,
         duration: 0.55,
@@ -235,10 +255,29 @@ function walkIntoWorld(camera) {
     });
 }
 
+// Libère proprement la mémoire GPU d'un groupe Three.js
+// CRUCIAL sur mobile : le GPU a ~1-4 Go de VRAM, les fuites crashent l'app
+function disposeGroup(group) {
+    group.traverse((obj) => {
+        if (!obj.isMesh) return;
+        obj.geometry?.dispose();
+        const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+        for (const mat of mats) {
+            if (!mat) continue;
+            mat.map?.dispose();
+            mat.lightMap?.dispose();
+            mat.bumpMap?.dispose();
+            mat.normalMap?.dispose();
+            mat.envMap?.dispose();
+            mat.dispose();
+        }
+    });
+}
+
 function exitPainting(scene, camera) {
     isTransitioning = true;
     hideExitHint();
-    
+    deactivateGyroscope();   // Retour au touch-drag dans le musée
 
     gsap.to(fadeOverlay, {
         opacity: 1,
@@ -248,6 +287,7 @@ function exitPainting(scene, camera) {
             stopWorldMusic();
             if (activeWorldGroup) {
                 scene.remove(activeWorldGroup);
+                disposeGroup(activeWorldGroup);   // ← libère géométrie + textures du GPU
                 activeWorldGroup = null;
             }
 
