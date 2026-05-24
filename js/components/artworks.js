@@ -27,38 +27,50 @@ function createPlaqueTexture(title) {
     return new THREE.CanvasTexture(canvas);
 }
 
-// NOUVELLE VERSION : Avec le paramètre "title" inclus !
 export function createPainting(scene, imagePath, title, x, y, z, rotationY, width, height) {
     const paintingGroup = new THREE.Group();
+    
+    // On initialise le chargeur de textures une seule fois en haut
+    const textureLoader = new THREE.TextureLoader();
 
-    // 1. Le Cadre (doré et légèrement plus grand que la toile)
+    // 1. Le Cadre (NOUVEAU : Avec ta texture)
     const frameThickness = 0.3;
     const frameGeo = new THREE.BoxGeometry(width + frameThickness, height + frameThickness, 0.1);
+    
+    // Chargement de l'image de ton motif de cadre
+    const frameTexture = textureLoader.load(
+        'assets/textures/cadre.jpg', 
+        undefined, undefined,
+        (err) => console.error("⚠️ Texture du cadre introuvable : assets/textures/cadre.jpg")
+    );
+    
+    // On répète un peu la texture pour qu'elle ne soit pas floue ou trop étirée
+    frameTexture.wrapS = THREE.RepeatWrapping;
+    frameTexture.wrapT = THREE.RepeatWrapping;
+    frameTexture.repeat.set(2, 2); 
+
     const frameMat = new THREE.MeshStandardMaterial({ 
-        color: 0xd4af37, // Or antique
-        metalness: 0.6, 
-        roughness: 0.4 
+        map: frameTexture, 
+        color: 0xffffff, // Blanc pour ne pas altérer les couleurs de ton image
+        metalness: 0.2,  // Mets 0.7 ici si ton image est métallique (or/argent)
+        roughness: 0.6 
     });
     const frame = new THREE.Mesh(frameGeo, frameMat);
-    frame.position.z = -0.05; // On recule le cadre pour laisser la toile dépasser
+    frame.position.z = -0.05; 
     frame.castShadow = true;
     paintingGroup.add(frame);
 
-    // 2. La Toile (avec ton image)
+    // 2. La Toile (avec ton image d'art)
     const canvasGeo = new THREE.BoxGeometry(width, height, 0.05);
-    const textureLoader = new THREE.TextureLoader();
-    
-    // Chargement de l'image
-    const texture = textureLoader.load(
+    const canvasTexture = textureLoader.load(
         imagePath,
-        undefined, 
-        undefined,
-        (err) => console.error("⚠️ Image introuvable :", imagePath) 
+        undefined, undefined,
+        (err) => console.error("⚠️ Image d'art introuvable :", imagePath) 
     );
-    texture.colorSpace = THREE.SRGBColorSpace; // Garde les vraies couleurs de l'image
+    canvasTexture.colorSpace = THREE.SRGBColorSpace; 
     
     const canvasMat = new THREE.MeshStandardMaterial({ 
-        map: texture, 
+        map: canvasTexture, 
         roughness: 0.8 
     });
     const canvas = new THREE.Mesh(canvasGeo, canvasMat);
@@ -73,8 +85,6 @@ export function createPainting(scene, imagePath, title, x, y, z, rotationY, widt
         roughness: 0.4
     });
     const plaque = new THREE.Mesh(plaqueGeo, plaqueMat);
-    
-    // On positionne la plaque juste en dessous du cadre
     plaque.position.y = -(height / 2) - 0.4;
     paintingGroup.add(plaque);
 

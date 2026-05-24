@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-// 1. CORRECTION : Ajout de l'import du GLTFLoader pour les plantes
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { createCeilingLamp } from './lighting.js';
 import { createPainting } from './artworks.js';
@@ -36,7 +35,6 @@ function createBench(scene, x, z, rotationY) {
     scene.add(benchGroup);
 }
 
-// Fonction pour charger un objet statique (déplacée ici pour la propreté)
 function loadStaticDecoration(scene, modelPath, x, z, scale = 1.0) {
     const loader = new GLTFLoader(); 
     loader.load(modelPath, (gltf) => {
@@ -56,13 +54,66 @@ function loadStaticDecoration(scene, modelPath, x, z, scale = 1.0) {
     });
 }
 
+// --- NOUVELLE FONCTION : Les Moulures Classiques ---
+function createWallMoldings(scene, x, z, rotationY) {
+    const wallGroup = new THREE.Group();
+    
+    // Blanc éclatant et légèrement brillant pour accrocher la lumière
+    const moldingMat = new THREE.MeshStandardMaterial({ color: '#C4E2F5', roughness: 0.5 });
+    
+    const depth = 0.05; // Épaisseur : les moulures ressortent de 5cm du mur
+    const thick = 0.08; // Largeur : les baguettes font 8cm de large
+
+    // Petite fonction interne pour dessiner rapidement un cadre rectangulaire
+    function drawRect(cx, cy, w, h) {
+        const top = new THREE.Mesh(new THREE.BoxGeometry(w, thick, depth), moldingMat);
+        top.position.set(cx, cy + h/2, 0); top.castShadow = true; wallGroup.add(top);
+        
+        const bottom = new THREE.Mesh(new THREE.BoxGeometry(w, thick, depth), moldingMat);
+        bottom.position.set(cx, cy - h/2, 0); bottom.castShadow = true; wallGroup.add(bottom);
+        
+        const left = new THREE.Mesh(new THREE.BoxGeometry(thick, h, depth), moldingMat);
+        left.position.set(cx - w/2, cy, 0); left.castShadow = true; wallGroup.add(left);
+        
+        const right = new THREE.Mesh(new THREE.BoxGeometry(thick, h, depth), moldingMat);
+        right.position.set(cx + w/2, cy, 0); right.castShadow = true; wallGroup.add(right);
+    }
+
+    // 1. Cadre Central (Entoure tes tableaux)
+    // Le tableau est à Y=4.5 et fait 4x3. On fait un cadre de 5.5 x 4.5.
+    drawRect(0, 4.5, 5.5, 4.5);
+
+    // 2. Cadres Latéraux (Gauche et Droite)
+    drawRect(-6, 4.5, 4, 4.5);
+    drawRect(6, 4.5, 4, 4.5);
+
+    // 3. Soubassements (Les petits cadres en bas près du sol)
+    drawRect(0, 1.2, 5.5, 1.5);
+    drawRect(-6, 1.2, 4, 1.5);
+    drawRect(6, 1.2, 4, 1.5);
+
+    // 4. Plinthe (La grande barre au ras du sol)
+    const plinthe = new THREE.Mesh(new THREE.BoxGeometry(20, 0.3, depth * 1.5), moldingMat);
+    plinthe.position.set(0, 0.15, 0);
+    wallGroup.add(plinthe);
+
+    // 5. Cimaise (La ligne horizontale qui sépare le haut du bas)
+    const cimaise = new THREE.Mesh(new THREE.BoxGeometry(20, 0.1, depth * 1.8), moldingMat);
+    cimaise.position.set(0, 2.2, 0);
+    wallGroup.add(cimaise);
+
+    // Positionnement final contre le mur
+    wallGroup.position.set(x, 0, z);
+    wallGroup.rotation.y = rotationY;
+    scene.add(wallGroup);
+}
+
 export function createMuseum(scene, mixers, movingNPCs) {
     // --- A. LA STRUCTURE ---
     const roomGeometry = new THREE.BoxGeometry(20, 8, 20); 
     
     const textureLoader = new THREE.TextureLoader();
     
-    // 1. Texture du sol (Parquet)
     const floorTexture = textureLoader.load('assets/textures/parquet1.jpg'); 
     floorTexture.wrapS = THREE.RepeatWrapping;
     floorTexture.wrapT = THREE.RepeatWrapping;
@@ -73,14 +124,12 @@ export function createMuseum(scene, mixers, movingNPCs) {
         side: THREE.BackSide 
     }); 
     
-    // 2. Couleur des murs
     const wallMaterial = new THREE.MeshStandardMaterial({ 
         color: '#C4E2F5', 
         roughness: 0.9, 
         side: THREE.BackSide 
     }); 
     
-    // 3. Texture du plafond
     const ceilingTexture = textureLoader.load('assets/textures/ceiling_white.jpg'); 
     ceilingTexture.wrapS = THREE.RepeatWrapping;
     ceilingTexture.wrapT = THREE.RepeatWrapping;
@@ -97,6 +146,13 @@ export function createMuseum(scene, mixers, movingNPCs) {
     room.position.y = 4; 
     scene.add(room);
 
+    // --- APPLICATION DES MOULURES SUR LES 4 MURS ---
+    // On les place à 9.95 du centre pour qu'elles soient parfaitement plaquées contre les murs
+    createWallMoldings(scene, 0, -9.95, 0);            // Mur du Fond
+    createWallMoldings(scene, -9.95, 0, Math.PI / 2);  // Mur de Gauche
+    createWallMoldings(scene, 9.95, 0, -Math.PI / 2);  // Mur de Droite
+    createWallMoldings(scene, 0, 9.95, Math.PI);       // Mur de Devant
+
     // --- B. LES LAMPES AU PLAFOND ---
     createCeilingLamp(scene, -5, -5); 
     createCeilingLamp(scene, 5, -5); 
@@ -104,11 +160,10 @@ export function createMuseum(scene, mixers, movingNPCs) {
     createCeilingLamp(scene, 5, 5); 
 
     // --- C. LES TABLEAUX D'EXPOSITION ---
-    // 2. CORRECTION : Ajout des titres pour les plaques et Y monté à 4.5
-    createPainting(scene, 'assets/textures/art1.jpg', 'Œuvre Numéro 1', 0, 4.5, -9.9, 0, 4, 3); 
-    createPainting(scene, 'assets/textures/art2.jpg', 'Ma Peinture', -9.9, 4.5, 0, Math.PI / 2, 4, 3);
-    createPainting(scene, 'assets/textures/art3.jpg', 'Art Abstrait', 9.9, 4.5, 0, -Math.PI / 2, 4, 3);
-    createPainting(scene, 'assets/textures/art4.jpg', 'Paysage', 0, 4.5, 9.9, Math.PI, 4, 3);
+    createPainting(scene, 'assets/textures/starry_night.jpg', 'Starry Night', 0, 4.5, -9.9, 0, 4, 3); 
+    createPainting(scene, 'assets/textures/winter.png', 'Hiver', -9.9, 4.5, 0, Math.PI / 2, 4, 3);
+    createPainting(scene, 'assets/textures/scream.jpg', 'Le Cri', 9.9, 4.5, 0, -Math.PI / 2, 4, 3);
+    createPainting(scene, 'assets/textures/city.png', 'Ville', 0, 4.5, 9.9, Math.PI, 4, 3);
 
     // --- D. LES VISITEURS (PNJ) ---
     loadAnimatedNPC(scene, mixers, 'models/Standing idle (2).glb', 0, 0, -7, 0, -9.9, 1.5);
@@ -129,7 +184,7 @@ export function createMuseum(scene, mixers, movingNPCs) {
 
     // --- E. LES PLANTES D'ORNEMENT (DANS LES 4 COINS) ---
     const plantPath = 'models/plant.glb';
-    const plantScale = 1.2; // Ajuste ceci selon la taille de ton modèle de plante
+    const plantScale = 1.2; 
 
     loadStaticDecoration(scene, plantPath, -8.8, -8.8, plantScale);
     loadStaticDecoration(scene, plantPath, 8.8, -8.8, plantScale);
