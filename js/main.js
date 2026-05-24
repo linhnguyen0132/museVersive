@@ -1,14 +1,20 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 import { createMuseum } from './components/museum.js';
+import { setupInteractions, updateInteractions } from './components/interaction.js';
 
+// --- VARIABLES GLOBALES ---
 let camera, scene, renderer, controls;
 let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
 let prevTime = performance.now();
 const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
 const mixers = [];
-const movingNPCs = []; // NOUVEAU : Tableau pour les PNJ qui se déplacent
+const movingNPCs = []; 
+
+const raycaster = new THREE.Raycaster();
+let paintings = []; 
+
 init();
 animate();
 
@@ -24,8 +30,9 @@ function init() {
 
     setupControls();
 
-    // Importation de notre composant Musée (dans la fonction init)
-    createMuseum(scene, mixers, movingNPCs);
+    // INITIALISATION UNIQUE
+    paintings = createMuseum(scene, mixers, movingNPCs);
+    setupInteractions(scene, camera, raycaster, paintings);
 
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(window.devicePixelRatio);
@@ -34,6 +41,22 @@ function init() {
     document.body.appendChild(renderer.domElement);
 
     window.addEventListener('resize', onWindowResize);
+
+    // CRÉATION DU VISEUR CENTRAL
+    const crosshair = document.createElement('div');
+    crosshair.style.cssText = `
+        position: absolute; 
+        top: 50%; 
+        left: 50%; 
+        width: 6px; 
+        height: 6px; 
+        background: rgba(255, 255, 255, 0.8); 
+        border-radius: 50%; 
+        transform: translate(-50%, -50%); 
+        z-index: 100; 
+        pointer-events: none;
+    `;
+    document.body.appendChild(crosshair);
 }
 
 function setupControls() {
@@ -75,12 +98,9 @@ function onWindowResize() {
 function animate() {
     requestAnimationFrame(animate);
     const time = performance.now();
-    
-    // 1. On sort le delta du "if" pour qu'il tourne même quand le jeu est en pause
     const delta = (time - prevTime) / 1000;
 
     if (controls.isLocked === true) {
-        // (J'ai enlevé la ligne du delta qui était ici)
         velocity.x -= velocity.x * 10.0 * delta;
         velocity.z -= velocity.z * 10.0 * delta;
         direction.z = Number(moveForward) - Number(moveBackward);
@@ -100,9 +120,12 @@ function animate() {
         if (camera.position.z < -padding) camera.position.z = -padding;
         if (camera.position.z > padding) camera.position.z = padding;
     }
-    // 2. AJOUT : On met à jour toutes les animations des PNJ à chaque image
+    
     mixers.forEach(mixer => mixer.update(delta));
-    movingNPCs.forEach(npc => npc.update(delta)); // NOUVEAU : On déplace les PNJ
+    movingNPCs.forEach(npc => npc.update(delta)); 
+
+    // MISE À JOUR DE LA DÉTECTION (Raycaster)
+    updateInteractions(camera, raycaster, paintings);
 
     prevTime = time;
     renderer.render(scene, camera);
