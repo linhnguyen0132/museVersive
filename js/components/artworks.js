@@ -66,7 +66,144 @@ export function createPainting(scene, imagePath, title, x, y, z, rotationY, widt
     paintingGroup.rotation.y = rotationY;
 
     paintingGroup.name = title;
+    // ===================================
+    // THE SCREAM ANIMÉ
+    // ===================================
 
+    if (title === "The Scream") {
+
+        const figureTexture = textureLoader.load(
+            'assets/painting/theScream/layers/the-scream-figure.png'
+        );
+
+        figureTexture.colorSpace =
+            THREE.SRGBColorSpace;
+
+        const figureGeo =
+            new THREE.PlaneGeometry(
+                width ,
+                height 
+            );
+
+        const figureMat =
+            new THREE.MeshBasicMaterial({
+                map: figureTexture,
+                transparent: true,
+                side: THREE.DoubleSide
+            });
+
+        const figure = new THREE.Mesh(
+            figureGeo,
+            figureMat
+        );
+
+        // devant le tableau
+        figure.position.set(
+            0,
+            0,
+            0.06
+        );
+
+        // animation
+        figure.userData.isScreamFigure = true;
+        figure.userData.baseY = figure.position.y;
+
+        paintingGroup.add(figure);
+
+        console.log("SCREAM FIGURE ADDED");
+
+        // ======================
+        // SKY LAYER
+        // ======================
+
+        const skyTexture = textureLoader.load(
+            'assets/painting/theScream/layers/the-scream-sky1.png'
+        );
+
+        skyTexture.colorSpace =
+            THREE.SRGBColorSpace;
+
+        const skyGeo =
+            new THREE.PlaneGeometry(
+                width,
+                height
+            );
+
+        const skyMat =
+            new THREE.MeshBasicMaterial({
+                map: skyTexture,
+                transparent: true,
+                side: THREE.DoubleSide,
+                depthWrite: false
+            });
+
+        const sky = new THREE.Mesh(
+            skyGeo,
+            skyMat
+        );
+
+        // légèrement devant le tableau
+        sky.position.set(0, 0, 0.03);
+
+        // animation
+        sky.userData.isScreamSky = true;
+        sky.userData.baseY = sky.position.y;
+
+        paintingGroup.add(sky);
+        sky.renderOrder = 1;
+        figure.renderOrder = 2;
+    }
+
+    // ===================================
+    // STARRY NIGHT
+    // ===================================
+
+    if (title === "Starry Night") {
+
+        const treeTexture = textureLoader.load(
+            'assets/painting/starryNight/layers/starry_night-tree.png'
+        );
+
+        treeTexture.colorSpace =
+            THREE.SRGBColorSpace;
+
+        const treeGeo =
+            new THREE.PlaneGeometry(
+                width,
+                height
+            );
+
+        const treeMat =
+            new THREE.MeshBasicMaterial({
+                map: treeTexture,
+                transparent: true,
+                side: THREE.DoubleSide,
+                depthWrite: false
+            });
+
+        const tree = new THREE.Mesh(
+            treeGeo,
+            treeMat
+        );
+
+        // devant le tableau
+        tree.position.set(
+            0,
+            0,
+            0.05
+        );
+
+        tree.renderOrder = 2;
+
+        // animation
+        tree.userData.isStarryTree = true;
+        tree.userData.baseX = tree.position.x;
+        tree.userData.baseY = tree.position.y;
+
+        paintingGroup.add(tree);
+
+        console.log("STARRY TREE ADDED");
+    }
     scene.add(paintingGroup);
     return paintingGroup;
 }
