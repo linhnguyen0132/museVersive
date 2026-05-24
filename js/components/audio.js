@@ -1,10 +1,10 @@
 // js/components/audio.js
 
 const TRACKS = {
-    'Starry Night': 'assets/audio/mergedStarry.wav', // ex: 'assets/sounds/starry_night.mp3'  (ex. "Vincent" – Don McLean)
-    'The Scream':       'assets/audio/mergedScream.wav' , // ex: 'assets/sounds/le_cri.mp3'        (ex. Grieg – In the Hall…)
-    'March in the Birch Woods':        'assets/audio/mergedWinter.wav', // ex: 'assets/sounds/hiver.mp3'         (ex. Vivaldi – L'Hiver)
-    'City Hall at Thorn':        'assets/audio/mergedCity.wav', // ex: 'assets/sounds/ville.mp3'         (ex. ambiance urbaine + pluie)
+    'Starry Night': 'assets/audio/mp3/Starry.mp3', // ex: 'assets/sounds/starry_night.mp3'  (ex. "Vincent" – Don McLean)
+    'The Scream':       'assets/audio/mp3/Scream.mp3' , // ex: 'assets/sounds/le_cri.mp3'        (ex. Grieg – In the Hall…)
+    'March in the Birch Woods':        'assets/audio/mp3/Winter.mp3', // ex: 'assets/sounds/hiver.mp3'         (ex. Vivaldi – L'Hiver)
+    'City Hall at Thorn':        'assets/audio/mp3/City.mp3', // ex: 'assets/sounds/ville.mp3'         (ex. ambiance urbaine + pluie)
 };
 
 const FADE_STEPS    = 40;
