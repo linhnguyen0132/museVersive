@@ -329,85 +329,20 @@ function _shortAngle(from, to) {
 }
 
 function lookAtPainting(camera, painting, onDone) {
-    // getWorldPosition() force la mise à jour de matrixWorld avant lecture.
-    // Sans ça, Box3.setFromObject() peut utiliser des matrices périmées et placer
-    // les meshes enfants (canvas, cadre, plaque) à l'origine → bbox center y ≈ -0.2
-    // → regard vers le sol.
-    //
-    // Le canvas est à local y = 0 dans le groupe → getWorldPosition donne
-    // directement le centre exact de la toile (ex. y = 4.5 pour tous les tableaux).
-    const target = new THREE.Vector3();
-    painting.getWorldPosition(target);
 
-    const dx = target.x - camera.position.x;
-    const dy = target.y - camera.position.y;   // toujours > 0 : tableaux au-dessus des yeux
-    const dz = target.z - camera.position.z;
-    const hDist = Math.sqrt(dx * dx + dz * dz) || 0.001;
+    const target = painting.userData.lookAtTarget.clone();
 
-    // Yaw : direction horizontale vers le mur du tableau (chemin le plus court)
-    const targetYaw = _shortAngle(camera.rotation.y, Math.atan2(-dx, -dz));
+    // viser légèrement au-dessus
+    target.y += 0.5;
 
-    // Pitch : regard vers le haut (dy > 0 → rawPitch < 0 → look up).
-    // Math.min(0, ...) garantit qu'on ne regardera jamais vers le bas,
-    // même si dy venait à être négatif pour une raison imprévue.
-    const rawPitch    = -Math.atan2(dy, hDist);
-    const targetPitch = Math.max(-Math.PI / 2.2, Math.min(0, rawPitch));
+    // direction complète
+    camera.lookAt(target);
 
-    gsap.to(camera.rotation, {
-        y: targetYaw,
-        x: targetPitch,
+    gsap.to({}, {
         duration: 0.55,
         ease: 'power2.out',
-        onComplete: onDone,
+        onComplete: onDone
     });
-}
-
-// ─── flyToPainting ────────────────────────────────────────────────────────────
-function flyToPainting(scene, camera, targetPainting) {
-    isTransitioning = true;
-    savedCameraPosition = camera.position.clone();
-    hideMenu();
-
-    // 1. Centrage du regard sur l'œuvre
-    lookAtPainting(camera, targetPainting, () => {
-
-        // 2. Vol vers le tableau
-        const offset = new THREE.Vector3(0, 0, 1.5);
-        offset.applyQuaternion(targetPainting.quaternion);
-        const targetPosition = targetPainting.position.clone().add(offset);
-
-        gsap.to(camera.position, {
-            x: targetPosition.x,
-            y: targetPainting.position.y,
-            z: targetPosition.z,
-            duration: 1.5,
-            ease: 'power2.inOut',
-            onComplete: () => {
-                gsap.to(fadeOverlay, {
-                    opacity: 1,
-                    duration: 1.2,
-                    ease: 'power2.inOut',
-                    onComplete: () => {
-                        activeWorldGroup = loadArtworkWorld(scene, camera, targetPainting.name);
-                        playWorldMusic(targetPainting.name);
-                        insidePainting = true;
-
-                        gsap.to(fadeOverlay, {
-                            opacity: 0,
-                            duration: 2.0,
-                            delay: 0.5,
-                            onComplete: () => {
-                                activateGyroscope();
-                                showExitHint();
-                                walkIntoWorld(camera, () => { isTransitioning = false; });
-                            }
-                        });
-                    }
-                });
-            }
-        });
-
-    }); // fin lookAtPainting
 }
 
 // ─── walkIntoWorld ────────────────────────────────────────────────────────────
