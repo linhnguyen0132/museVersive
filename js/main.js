@@ -61,7 +61,7 @@ function init() {
 
     // Cache des objets animés — traverse unique, jamais répété en boucle
     scene.traverse((obj) => {
-        if (obj.userData.isScreamFigure || obj.userData.isScreamSky || obj.userData.isStarryTree) {
+        if (obj.userData.isScreamFigure || obj.userData.isScreamSky || obj.userData.isStarryTree || obj.userData.isSnowGroup    ) {
             animatedObjects.push(obj);
         }
     });
@@ -340,6 +340,18 @@ function animate() {
             obj.scale.set(breathe, breathe, breathe);
             obj.position.x = obj.userData.baseX + Math.sin(t * 0.5) * 0.01;
             obj.position.y = obj.userData.baseY + Math.cos(t * 0.7) * 0.01;
+        }
+        if (obj.userData.isSnowGroup) {
+            obj.children.forEach((flake) => {
+                // chute
+                flake.position.y -=flake.userData.speed;
+                // drift horizontal
+                flake.position.x +=Math.sin(t + flake.position.y) * 0.001;
+                // reset
+                if (flake.position.y < -2) {
+                    flake.position.y = 2;
+                }
+            });
         }
     }
 
