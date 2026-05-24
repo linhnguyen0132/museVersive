@@ -157,7 +157,34 @@ function animate() {
             obj.rotation.z =
                 Math.sin(t * 2) * 0.01;
         }
+         // SKY LAYER ANIMÉ (pour The Scream)
+     if (obj.userData.isScreamSky) {
+
+            const t = time * 0.001;
+
+            const baseY =
+                obj.userData.baseY;
+
+            // vibration lente
+            obj.position.x =
+                Math.sin(t * 0.3) * 0.01;
+
+            // flottement
+            obj.position.y =
+                baseY +
+                Math.sin(t * 0.8) * 0.03;
+
+            // rotation subtile
+            obj.rotation.z =
+                Math.sin(t * 0.2) * 0.003;
+
+            // respiration horizontale
+            obj.scale.x =
+                1 + Math.sin(t * 0.5) * 0.01;
+        }
     });
+
+   
     prevTime = time;
     renderer.render(scene, camera);
 }

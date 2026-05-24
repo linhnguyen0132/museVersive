@@ -111,6 +111,47 @@ export function createPainting(scene, imagePath, title, x, y, z, rotationY, widt
         paintingGroup.add(figure);
 
         console.log("SCREAM FIGURE ADDED");
+
+        // ======================
+        // SKY LAYER
+        // ======================
+
+        const skyTexture = textureLoader.load(
+            'assets/painting/theScream/layers/the-scream-sky1.png'
+        );
+
+        skyTexture.colorSpace =
+            THREE.SRGBColorSpace;
+
+        const skyGeo =
+            new THREE.PlaneGeometry(
+                width,
+                height
+            );
+
+        const skyMat =
+            new THREE.MeshBasicMaterial({
+                map: skyTexture,
+                transparent: true,
+                side: THREE.DoubleSide,
+                depthWrite: false
+            });
+
+        const sky = new THREE.Mesh(
+            skyGeo,
+            skyMat
+        );
+
+        // légèrement devant le tableau
+        sky.position.set(0, 0, 0.03);
+
+        // animation
+        sky.userData.isScreamSky = true;
+        sky.userData.baseY = sky.position.y;
+
+        paintingGroup.add(sky);
+        sky.renderOrder = 1;
+        figure.renderOrder = 2;
     }
     scene.add(paintingGroup);
     return paintingGroup;
