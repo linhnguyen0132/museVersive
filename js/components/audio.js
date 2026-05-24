@@ -4,10 +4,10 @@
 //  Dépose tes fichiers dans assets/sounds/ puis remplis les valeurs.
 // ══════════════════════════════════════════════════════════════════════
 const TRACKS = {
-    'Starry Night': null, // ex: 'assets/sounds/starry_night.mp3'  (ex. "Vincent" – Don McLean)
-    'Le Cri':       null, // ex: 'assets/sounds/le_cri.mp3'        (ex. Grieg – In the Hall…)
-    'Hiver':        null, // ex: 'assets/sounds/hiver.mp3'         (ex. Vivaldi – L'Hiver)
-    'Ville':        null, // ex: 'assets/sounds/ville.mp3'         (ex. ambiance urbaine + pluie)
+    'Starry Night': 'assets/audio/mergedStarry.wav', // ex: 'assets/sounds/starry_night.mp3'  (ex. "Vincent" – Don McLean)
+    'Le Cri':       'assets/audio/mergedScream.wav' , // ex: 'assets/sounds/le_cri.mp3'        (ex. Grieg – In the Hall…)
+    'Hiver':        'assets/audio/mergedWinter.wav', // ex: 'assets/sounds/hiver.mp3'         (ex. Vivaldi – L'Hiver)
+    'Ville':        'assets/audio/mergedCity.wav', // ex: 'assets/sounds/ville.mp3'         (ex. ambiance urbaine + pluie)
 };
 
 const FADE_STEPS    = 40;
