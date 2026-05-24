@@ -66,7 +66,7 @@ export function createPainting(scene, imagePath, title, x, y, z, rotationY, widt
     paintingGroup.rotation.y = rotationY;
 
     paintingGroup.name = title;
-        // ===================================
+    // ===================================
     // THE SCREAM ANIMÉ
     // ===================================
 
@@ -152,6 +152,57 @@ export function createPainting(scene, imagePath, title, x, y, z, rotationY, widt
         paintingGroup.add(sky);
         sky.renderOrder = 1;
         figure.renderOrder = 2;
+    }
+
+    // ===================================
+    // STARRY NIGHT
+    // ===================================
+
+    if (title === "Starry Night") {
+
+        const treeTexture = textureLoader.load(
+            'assets/painting/starryNight/layers/starry_night-tree.png'
+        );
+
+        treeTexture.colorSpace =
+            THREE.SRGBColorSpace;
+
+        const treeGeo =
+            new THREE.PlaneGeometry(
+                width,
+                height
+            );
+
+        const treeMat =
+            new THREE.MeshBasicMaterial({
+                map: treeTexture,
+                transparent: true,
+                side: THREE.DoubleSide,
+                depthWrite: false
+            });
+
+        const tree = new THREE.Mesh(
+            treeGeo,
+            treeMat
+        );
+
+        // devant le tableau
+        tree.position.set(
+            0,
+            0,
+            0.05
+        );
+
+        tree.renderOrder = 2;
+
+        // animation
+        tree.userData.isStarryTree = true;
+        tree.userData.baseX = tree.position.x;
+        tree.userData.baseY = tree.position.y;
+
+        paintingGroup.add(tree);
+
+        console.log("STARRY TREE ADDED");
     }
     scene.add(paintingGroup);
     return paintingGroup;

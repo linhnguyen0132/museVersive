@@ -129,59 +129,89 @@ function animate() {
     // MISE À JOUR DE LA DÉTECTION (Raycaster)
     updateInteractions(camera, raycaster, paintings);
         scene.traverse((obj) => {
-
-        if (obj.userData.isScreamFigure) {
-
             const t = time * 0.001;
+            // FIGURE
+            if (obj.userData.isScreamFigure) {
 
-            // respiration
-            const breathe =
-                1 + Math.sin(t * 3) * 0.02;
+                // respiration
+                const breathe =
+                    1 + Math.sin(t * 3) * 0.02;
 
-            obj.scale.set(
-                breathe,
-                breathe,
-                1
-            );
+                obj.scale.set(
+                    breathe,
+                    breathe,
+                    1
+                );
 
-            // vibration
-            obj.position.x =
-                Math.sin(t * 20) * 0.01;
+                // vibration
+                obj.position.x =
+                    Math.sin(t * 20) * 0.01;
 
-            // flottement
-            obj.position.y =
-                obj.userData.baseY +
-                Math.sin(t * 2) * 0.02;
+                // flottement
+                obj.position.y =
+                    obj.userData.baseY +
+                    Math.sin(t * 2) * 0.02;
 
-            // rotation
-            obj.rotation.z =
-                Math.sin(t * 2) * 0.01;
-        }
-         // SKY LAYER ANIMÉ (pour The Scream)
-     if (obj.userData.isScreamSky) {
+                // rotation
+                obj.rotation.z =
+                    Math.sin(t * 2) * 0.01;
+            }
+            // SKY 
+            if (obj.userData.isScreamSky) {
 
-            const t = time * 0.001;
+                    const t = time * 0.001;
 
-            const baseY =
-                obj.userData.baseY;
+                    const baseY =
+                        obj.userData.baseY;
 
-            // vibration lente
-            obj.position.x =
-                Math.sin(t * 0.3) * 0.01;
+                    // vibration lente
+                    obj.position.x =
+                        Math.sin(t * 0.3) * 0.01;
 
-            // flottement
-            obj.position.y =
-                baseY +
-                Math.sin(t * 0.8) * 0.03;
+                    // flottement
+                    obj.position.y =
+                        baseY +
+                        Math.sin(t * 0.8) * 0.03;
 
-            // rotation subtile
-            obj.rotation.z =
-                Math.sin(t * 0.2) * 0.003;
+                    // rotation subtile
+                    obj.rotation.z =
+                        Math.sin(t * 0.2) * 0.003;
 
-            // respiration horizontale
-            obj.scale.x =
-                1 + Math.sin(t * 0.5) * 0.01;
-        }
+                    // respiration horizontale
+                    obj.scale.x =
+                        1 + Math.sin(t * 0.5) * 0.01;
+                }
+
+            // Starry Night - Tree
+            if (obj.userData.isStarryTree) {
+
+                    // oscillation principale
+                    obj.rotation.z =
+                        Math.sin(t * 1.5) * 0.025;
+
+                    // micro vibration
+                    obj.rotation.y =
+                        Math.cos(t * 8.0) * 0.005;
+
+                    // respiration lente
+                    const breathe =
+                        1 + Math.sin(t * 0.8) * 0.01;
+
+                    obj.scale.set(
+                        breathe,
+                        breathe,
+                        breathe
+                    );
+
+                    // léger flottement
+                    obj.position.x =
+                        obj.userData.baseX +
+                        Math.sin(t * 0.5) * 0.01;
+
+                    obj.position.y =
+                        obj.userData.baseY +
+                        Math.cos(t * 0.7) * 0.01;
+                }
     });
 
    
