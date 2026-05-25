@@ -242,3 +242,188 @@ canvas {
     0%, 100% { opacity: 0.5; transform: scale(1); }
     50%       { opacity: 1;   transform: scale(1.2); }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   LOADING SCREEN
+   Couvre tout avant que Three.js ait fini de charger les assets
+   ═══════════════════════════════════════════════════════════════ */
+#loading-screen {
+    position: fixed;
+    inset: 0;
+    background: #0a0a0a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9000;
+    /* La transition opacity est injectée par JS au moment du fade-out */
+}
+
+.ls-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 24px;
+    width: 100%;
+}
+
+/* Logo */
+.ls-logo {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 8px;
+}
+
+.ls-logo-title {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: clamp(24px, 7vw, 42px);
+    font-weight: 700;
+    letter-spacing: 2px;
+    background: linear-gradient(135deg, #d4af37 0%, #f5e27a 50%, #c9a227 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    background-size: 200% 100%;
+    animation: shimmer 4s ease-in-out infinite;
+}
+
+.ls-logo-deco {
+    color: #d4af37;
+    font-size: 14px;
+    opacity: 0.6;
+    animation: pulse 3s ease-in-out infinite;
+}
+
+.ls-subtitle {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-style: italic;
+    font-size: 13px;
+    color: rgba(212, 175, 55, 0.5);
+    letter-spacing: 1px;
+    margin: 0 0 44px;
+    text-align: center;
+}
+
+/* Barre de progression */
+.ls-bar-track {
+    width: min(300px, 68vw);
+    height: 1px;
+    background: rgba(212, 175, 55, 0.12);
+    border-radius: 1px;
+    position: relative;
+    margin-bottom: 20px;
+}
+
+#ls-bar {
+    position: absolute;
+    top: -1px;
+    left: 0;
+    height: 3px;
+    width: 0%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, #c9a227, #f5e27a, #c9a227);
+    background-size: 200% 100%;
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+    transition: width 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    animation: ls-shimmer 1.6s linear infinite;
+}
+
+/* État indéterminé (avant que les assets commencent à charger) */
+#ls-bar.ls-indeterminate {
+    width: 100% !important;
+    opacity: 0;
+    animation: ls-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes ls-pulse {
+    0%, 100% { opacity: 0.25; }
+    50%       { opacity: 0.8;  }
+}
+
+@keyframes ls-shimmer {
+    from { background-position:  200% 0; }
+    to   { background-position: -200% 0; }
+}
+
+/* Texte de statut */
+#ls-status {
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.22);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-align: center;
+    margin: 0;
+    min-height: 14px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BOUTON INSTALL PWA
+   Affiché uniquement si beforeinstallprompt est déclenché
+   ═══════════════════════════════════════════════════════════════ */
+#pwa-install-btn {
+    display: none;            /* visible en JS quand disponible */
+    position: fixed;
+    bottom: max(20px, env(safe-area-inset-bottom, 20px));
+    right:  max(16px, env(safe-area-inset-right,  16px));
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: 24px;
+    background: rgba(212, 175, 55, 0.12);
+    border: 1px solid rgba(212, 175, 55, 0.45);
+    color: #d4af37;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    cursor: pointer;
+    z-index: 500;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: background 0.2s ease, transform 0.15s ease;
+}
+
+#pwa-install-btn:hover  { background: rgba(212, 175, 55, 0.22); transform: translateY(-2px); }
+#pwa-install-btn:active { transform: translateY(0); }
+
+/* ═══════════════════════════════════════════════════════════════
+   SAFE AREA — iPhone notch / Dynamic Island / home indicator
+   ═══════════════════════════════════════════════════════════════ */
+@supports (padding: env(safe-area-inset-bottom)) {
+    #joystick-zone {
+        bottom: max(20px, env(safe-area-inset-bottom)) !important;
+        left:   max(20px, env(safe-area-inset-left))   !important;
+    }
+    #exit-hint {
+        top: max(5%, env(safe-area-inset-top)) !important;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE MOBILE — petits écrans (téléphones compacts)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Écrans de moins de 640 px de hauteur (paysage sur mobile) */
+@media (max-height: 640px) {
+    #instructions {
+        padding: 22px 28px 18px;
+        max-height: 95vh;
+        overflow-y: auto;
+    }
+    .museum-subtitle  { margin-bottom: 14px; font-size: 12px; }
+    .separator        { margin: 10px 0; }
+    .controls-grid    { gap: 6px; }
+    #enter-btn        { margin-top: 4px; padding: 11px 32px; font-size: 13px; }
+    .enter-hint       { display: none; }
+}
+
+/* Très petits écrans en portrait (≤ 390 px de large) */
+@media (max-width: 390px) {
+    #instructions     { padding: 28px 18px 22px; }
+    .logo-title       { font-size: 26px; }
+    .logo-deco        { font-size: 13px; }
+    .museum-subtitle  { font-size: 12px; }
+    .key-group        { min-width: 90px; }
+    .control-label    { font-size: 12px; }
+    #enter-btn        { padding: 12px 28px; font-size: 14px; }
+}

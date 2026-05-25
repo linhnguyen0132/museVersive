@@ -51,7 +51,14 @@
       "sizes": "512x512",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Hall du musée"
+      "label": "Hall du musée — bureau"
+    },
+    {
+      "src": "/assets/icons/512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Hall du musée — mobile"
     }
   ],
 

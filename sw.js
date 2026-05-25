@@ -14,7 +14,7 @@
 // Pour forcer un rechargement du cache : incrémenter VERSION ci-dessous.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const VERSION      = 'v3';
+const VERSION      = 'v5';
 const CACHE_STATIC = `muse-static-${VERSION}`;
 const CACHE_MEDIA  = `muse-media-${VERSION}`;
 const CACHE_CDN    = `muse-cdn-${VERSION}`;
@@ -45,6 +45,7 @@ const STATIC_ASSETS = [
     '/js/components/audio.js',
     '/js/components/lighting.js',
     '/js/components/npc.js',
+    '/js/components/piano.js',
 
     // Icônes PWA (home screen)
     '/assets/icons/192.png',
@@ -90,6 +91,8 @@ const MEDIA_ASSETS = [
     '/models/Walking.glb',
     '/models/Sitting.glb',
     '/models/plant2.glb',
+    '/models/grand_piano.glb',
+    '/models/statue.glb',
 ];
 
 // ═════════════════════════════════════════════════════════════════════════════

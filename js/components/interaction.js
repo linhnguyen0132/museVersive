@@ -16,6 +16,16 @@ let activeWorldGroup    = null;
 let savedCameraPosition = null;
 let _orientCallback     = null;   // Action à exécuter après rotation / skip
 
+// ─── Tween de rotation caméra (Regarder) ─────────────────────────────────────
+// Un seul tween actif à la fois — tout nouveau appel tue le précédent.
+let _lookTween        = null;
+let isAnimatingCamera = false;
+
+function _killLookTween() {
+    if (_lookTween) { _lookTween.kill(); _lookTween = null; }
+    isAnimatingCamera = false;
+}
+
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
     || (window.innerWidth <= 1024 && navigator.maxTouchPoints > 0);
 
@@ -68,11 +78,15 @@ export function setupInteractions(scene, camera, raycaster, paintings) {
         if (isTransitioning || insidePainting || !currentTarget) return;
 
         if (e.target.closest('.menu-look-btn')) {
+            // Ignore le double-clic rapide si l'animation est déjà en cours
+            if (isAnimatingCamera) return;
             if (navigator.vibrate) try { navigator.vibrate(20); } catch (_) {}
             lookAtPainting(camera, currentTarget, null);
             return;
         }
         if (e.target.closest('.menu-enter-btn')) {
+            // "Entrer" interrompt proprement un "Regarder" en cours avant de démarrer
+            _killLookTween();
             if (navigator.vibrate) try { navigator.vibrate([30, 50, 30]); } catch (_) {}
             handleEnterPainting(scene, camera, currentTarget);
         }
@@ -163,10 +177,11 @@ export function setupInteractions(scene, camera, raycaster, paintings) {
     // ── Clavier (PC) ──────────────────────────────────────────────────────────
     window.addEventListener('keydown', (event) => {
         if (event.code === 'KeyF' && currentTarget && !isTransitioning && !insidePainting) {
-            lookAtPainting(camera, currentTarget, null);   // F = centrer la vue
+            if (!isAnimatingCamera) lookAtPainting(camera, currentTarget, null);
         }
         if (event.code === 'KeyE' && currentTarget && !isTransitioning && !insidePainting) {
-            handleEnterPainting(scene, camera, currentTarget);   // E = entrer
+            _killLookTween();   // interrompt "Regarder" si actif
+            handleEnterPainting(scene, camera, currentTarget);
         }
         if (event.code === 'Backspace' && insidePainting && !isTransitioning) {
             exitPainting(scene, camera);
@@ -330,19 +345,99 @@ function _shortAngle(from, to) {
 
 function lookAtPainting(camera, painting, onDone) {
 
-    const target = painting.userData.lookAtTarget.clone();
+    // ── 1. Tuer tout tween de rotation en cours ───────────────────────────────
+    // Sans ça : cliquer "Regarder" puis "Entrer" en moins de 0,55 s
+    // lance deux gsap.to() simultanés sur camera.rotation → conflit.
+    if (_lookTween) { _lookTween.kill(); _lookTween = null; }
+    gsap.killTweensOf(camera.rotation);
+    isAnimatingCamera = true;
 
-    // viser légèrement au-dessus
-    target.y += 0.5;
+    // ── 2. Position monde absolue de la toile ─────────────────────────────────
+    // getWorldPosition() force la mise à jour de matrixWorld.
+    // .position seul donnerait la position locale → (0,0,0) si parent ≠ scene
+    // → la caméra regarderait le sol au centre du musée.
+    const target = new THREE.Vector3();
+    painting.getWorldPosition(target);
 
-    // direction complète
-    camera.lookAt(target);
+    // ── 3. Calcul atan2 direct (camera YXZ) ──────────────────────────────────
+    // On NE peut PAS utiliser Object3D.lookAt() comme proxy :
+    //   Object3D → aligne le +Z local vers la cible
+    //   Camera   → aligne le -Z local vers la cible  (convention Three.js)
+    // → utiliser un dummy Object3D donne un yaw décalé de 180°.
+    // On recalcule manuellement les angles Euler YXZ équivalents à camera.lookAt(target).
+    const dx     = target.x - camera.position.x;
+    const dy     = target.y - camera.position.y;
+    const dz     = target.z - camera.position.z;
+    const hDist  = Math.sqrt(dx * dx + dz * dz) || 0.001;
 
-    gsap.to({}, {
+    // Yaw  : atan2(-dx, -dz) = angle pour que -Z local pointe vers (dx,dz)
+    const targetYaw   = _shortAngle(camera.rotation.y, Math.atan2(-dx, -dz));
+    // Pitch : angle vertical ; on clamp pour ne jamais regarder vers le bas
+    const rawPitch    = -Math.atan2(dy, hDist);
+    const targetPitch = Math.max(-Math.PI / 2.2, Math.min(0, rawPitch));
+
+    // ── 4. Animation fluide ───────────────────────────────────────────────────
+    _lookTween = gsap.to(camera.rotation, {
+        y: targetYaw,
+        x: targetPitch,
         duration: 0.55,
         ease: 'power2.out',
-        onComplete: onDone
+        onComplete: () => {
+            _lookTween        = null;
+            isAnimatingCamera = false;
+            if (onDone) onDone();
+        },
     });
+}
+
+// ─── flyToPainting ────────────────────────────────────────────────────────────
+function flyToPainting(scene, camera, targetPainting) {
+    isTransitioning     = true;
+    savedCameraPosition = camera.position.clone();
+    hideMenu();
+
+    // 1. Centrage du regard sur l'œuvre (tue tout tween "Regarder" en cours)
+    lookAtPainting(camera, targetPainting, () => {
+
+        // 2. Vol vers le tableau
+        const offset = new THREE.Vector3(0, 0, 1.5);
+        offset.applyQuaternion(targetPainting.quaternion);
+        const targetPos = new THREE.Vector3();
+        targetPainting.getWorldPosition(targetPos);
+        targetPos.add(offset);
+
+        gsap.to(camera.position, {
+            x: targetPos.x,
+            y: targetPos.y,
+            z: targetPos.z,
+            duration: 1.5,
+            ease: 'power2.inOut',
+            onComplete: () => {
+                gsap.to(fadeOverlay, {
+                    opacity: 1,
+                    duration: 1.2,
+                    ease: 'power2.inOut',
+                    onComplete: () => {
+                        activeWorldGroup = loadArtworkWorld(scene, camera, targetPainting.name);
+                        playWorldMusic(targetPainting.name);
+                        insidePainting = true;
+
+                        gsap.to(fadeOverlay, {
+                            opacity: 0,
+                            duration: 2.0,
+                            delay: 0.5,
+                            onComplete: () => {
+                                activateGyroscope();
+                                showExitHint();
+                                walkIntoWorld(camera, () => { isTransitioning = false; });
+                            },
+                        });
+                    },
+                });
+            },
+        });
+
+    }); // fin lookAtPainting
 }
 
 // ─── walkIntoWorld ────────────────────────────────────────────────────────────

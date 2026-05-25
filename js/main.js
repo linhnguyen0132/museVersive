@@ -4,6 +4,7 @@ import { createMuseum } from './components/museum.js';
 import { setupInteractions, updateInteractions, isInTransition } from './components/interaction.js';
 import { updateWorldAnimations } from './components/worlds.js';
 import { setupGyroscope, requestGyroPermission, isGyroActive } from './components/gyroscope.js';
+import { updatePiano, isPianoActive, handlePianoKeyE } from './components/piano.js';
 
 // ─── Variables globales ───────────────────────────────────────────────────────
 let camera, scene, renderer, controls;
@@ -32,8 +33,65 @@ let lookTouchId = null;         // identifiant du doigt qui contrôle la caméra
 const LOOK_SPEED = 0.005;
 
 // ─── Démarrage ────────────────────────────────────────────────────────────────
+setupLoadingManager();   // ← doit précéder init() pour intercepter tous les loaders
 init();
 animate();
+
+// ─── Loading Manager (progress bar avant que Three.js ait chargé les assets) ──
+function setupLoadingManager() {
+    const screen = document.getElementById('loading-screen');
+    const bar    = document.getElementById('ls-bar');
+    const status = document.getElementById('ls-status');
+    let   _done  = false;
+    const _t0    = Date.now();
+
+    /** Durée minimale d'affichage (évite un flash quand tout vient du cache) */
+    const MIN_MS = 900;
+
+    function _setProgress(pct) {
+        if (bar) {
+            bar.classList.remove('ls-indeterminate');
+            bar.style.width = pct + '%';
+            screen?.setAttribute('aria-valuenow', String(pct));
+        }
+        if (status) status.textContent = pct < 100 ? `Chargement… ${pct} %` : 'Prêt !';
+    }
+
+    function _fadeOut() {
+        if (!screen || _done) return;
+        _done = true;
+        _setProgress(100);
+        screen.style.transition = 'opacity 0.65s ease';
+        screen.style.opacity    = '0';
+        screen.style.pointerEvents = 'none';
+        setTimeout(() => { screen.style.display = 'none'; }, 700);
+    }
+
+    function _finish() {
+        // Respecte le MIN_MS pour éviter le flash de chargement
+        const wait = Math.max(0, MIN_MS - (Date.now() - _t0));
+        setTimeout(_fadeOut, wait);
+    }
+
+    THREE.DefaultLoadingManager.onStart = () => {
+        // Passe de l'état indéterminé à la progression réelle
+        if (bar) bar.classList.remove('ls-indeterminate');
+        if (status) status.textContent = 'Chargement des œuvres…';
+    };
+
+    THREE.DefaultLoadingManager.onProgress = (_url, loaded, total) => {
+        if (total > 0) _setProgress(Math.min(99, Math.round(loaded / total * 100)));
+    };
+
+    THREE.DefaultLoadingManager.onLoad  = _finish;
+    THREE.DefaultLoadingManager.onError = (url) => {
+        console.warn('[LoadingManager] Asset manquant :', url);
+        // Ne bloque pas l'expérience sur une erreur d'asset
+    };
+
+    // Sécurité : force la fermeture après 15 s (réseau lent ou assets manquants)
+    setTimeout(_finish, 15_000);
+}
 
 // ─── init ─────────────────────────────────────────────────────────────────────
 function init() {
@@ -93,18 +151,31 @@ function setupControls() {
     const blocker      = document.getElementById('blocker');
     const instructions = document.getElementById('instructions');
 
-    instructions.addEventListener('click', () => controls.lock());
+    // Clic n'importe où sur le blocker → entre / reprend l'expérience
+    blocker.addEventListener('click', () => {
+        if (!controls.isLocked) controls.lock();
+    });
+
+    // Échap 2e appui (menu pause visible) → reprend sans avoir à cliquer
+    document.addEventListener('keydown', (e) => {
+        if (e.code === 'Escape' && !controls.isLocked && blocker.style.display !== 'none') {
+            controls.lock();
+        }
+    });
 
     controls.addEventListener('lock', () => {
+        blocker.style.display      = 'none';
         instructions.style.display = 'none';
-        blocker.style.display = 'none';
     });
     controls.addEventListener('unlock', () => {
-        blocker.style.display = 'flex';
+        blocker.style.display      = 'flex';
         instructions.style.display = 'block';
     });
 
     const onKeyDown = (e) => {
+        // Piano mode : bloque tous les déplacements + gère la touche E
+        if (isPianoActive()) return;
+        if (e.code === 'KeyE') { handlePianoKeyE(); return; }
         switch (e.code) {
             case 'ArrowUp':    case 'KeyW': case 'KeyZ': moveForward  = true; break;
             case 'ArrowLeft':  case 'KeyA': case 'KeyQ': moveLeft     = true; break;
@@ -113,6 +184,7 @@ function setupControls() {
         }
     };
     const onKeyUp = (e) => {
+        if (isPianoActive()) return;
         switch (e.code) {
             case 'ArrowUp':    case 'KeyW': case 'KeyZ': moveForward  = false; break;
             case 'ArrowLeft':  case 'KeyA': case 'KeyQ': moveLeft     = false; break;
@@ -281,9 +353,9 @@ function animate() {
     const time  = performance.now();
     const delta = Math.min((time - prevTime) / 1000, 0.05); // Cap à 50ms pour éviter les sauts
 
-    const canMove = (!isMobile && controls.isLocked) || isMobile;
+    const canMove = ((!isMobile && controls.isLocked) || isMobile) && !isPianoActive();
 
-    // Physique — BLOQUÉE pendant les transitions GSAP (entrée/sortie toile)
+    // Physique — BLOQUÉE pendant les transitions GSAP ou quand le piano est actif
     if (canMove && !isInTransition()) {
 
         // Friction
@@ -325,6 +397,7 @@ function animate() {
     movingNPCs.forEach(npc => npc.update(delta));
     updateWorldAnimations(delta);
     updateInteractions(camera, raycaster, paintings);
+    updatePiano(camera);
 
     // Animations custom — itère UNIQUEMENT le cache (pas de scene.traverse par frame)
     const t = time * 0.001;

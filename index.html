@@ -28,6 +28,31 @@
 </head>
 <body>
 
+    <!-- ══ LOADING SCREEN ══════════════════════════════════════════════════════ -->
+    <div id="loading-screen"
+         role="progressbar"
+         aria-label="Chargement du musée"
+         aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div class="ls-inner">
+            <div class="ls-logo">
+                <span class="ls-logo-deco">✦</span>
+                <span class="ls-logo-title">MuseVersive</span>
+                <span class="ls-logo-deco">✦</span>
+            </div>
+            <p class="ls-subtitle">Une expérience artistique immersive</p>
+            <div class="ls-bar-track">
+                <div id="ls-bar" class="ls-indeterminate"></div>
+            </div>
+            <p id="ls-status">Initialisation…</p>
+        </div>
+    </div>
+
+    <!-- ══ BOUTON INSTALL PWA (visible seulement si beforeinstallprompt) ═══════ -->
+    <button id="pwa-install-btn" onclick="window._installPWA()" aria-label="Installer MuseVersive sur cet appareil">
+        <span>📲</span>
+        <span>Installer</span>
+    </button>
+
     <div id="blocker">
         <div id="instructions">
             <div class="museum-logo">
@@ -141,6 +166,32 @@
             }
         });
     }
+
+    // ── Invite d'installation PWA (Android Chrome / Edge) ─────────────────
+    let _deferredInstall = null;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        _deferredInstall = e;
+        const btn = document.getElementById('pwa-install-btn');
+        if (btn) btn.style.display = 'flex';
+    });
+
+    window.addEventListener('appinstalled', () => {
+        _deferredInstall = null;
+        document.getElementById('pwa-install-btn')?.remove();
+        console.info('[PWA] Application installée ✅');
+    });
+
+    window._installPWA = function () {
+        if (!_deferredInstall) return;
+        _deferredInstall.prompt();
+        _deferredInstall.userChoice.then(choice => {
+            if (choice.outcome === 'accepted')
+                document.getElementById('pwa-install-btn')?.remove();
+            _deferredInstall = null;
+        });
+    };
 
     // ── Détection offline / online ──────────────────────────────────────────
     function _showOfflineBanner() {

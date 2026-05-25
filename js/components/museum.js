@@ -3,6 +3,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { createCeilingLamp } from './lighting.js';
 import { createPainting } from './artworks.js';
 import { loadAnimatedNPC, loadPatrollingNPC } from './npc.js';
+import { setupPianoAt } from './piano.js';
 
 function createBench(scene, x, z, rotationY) {
     const benchGroup = new THREE.Group();
@@ -219,9 +220,9 @@ export function createMuseum(scene, mixers, movingNPCs) {
 
     // --- SCULPTURES ET INSTRUMENTS ---
 
-    // 1. Le Piano à queue
-    // Paramètres : scene, path, x, z, scale, rotationY, y (hauteur)
-    loadStaticDecoration(scene, 'models/grand_piano.glb', -4, -8.0, 0.5, Math.PI / 4, 0);
+    // 1. Piano à queue — modèle GLB original + interaction
+    loadStaticDecoration(scene, 'models/grand_piano.glb', -4, -8.0, 0.5);
+    setupPianoAt(-4, -8.0);   // enregistre la position pour la détection de proximité
 
     // 2. La Statue sur son socle
     const pedestalGeo = new THREE.CylinderGeometry(0.6, 0.6, 1.2, 32);
